@@ -217,5 +217,10 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-#Stop the Google Drive from showing on the public repo
+# Stop the Google Drive from showing on the public repo
 /Google Drive/
+
+# Also stop my miscellaneous project notes from showing
+/Literature/
+/Meeting notes.docx
+/Project notes.docx
