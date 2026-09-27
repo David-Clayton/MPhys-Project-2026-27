@@ -216,3 +216,9 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+#Might want to hide Dirk's stuff for privacy reasons
+*.docx
+*.txt
+*.ipynb
+*.fits
