@@ -1,0 +1,14 @@
+EXCELS v3 Flux Calibration Notes:
+
+All spectra have been calibrated to the PRIMER photometry and visually inspected. 
+This process is mostly automated - if a particular galaxy you are using seems weird, feel free to email me
+(t.stanton@ed.ac.uk) and I'll look into it.
+
+The attached summary file contains a rough overview of the sample.
+There is a slight mismatch in some redshifts, please check the emission line catalogues for up-to-date redshifts.
+The flags in this file represent:
+0 - No data, or did not pass visual inspection
+1 - Issue in calibration, e.g., slit misalignment between grating observations.
+2 - Passes visual inspection, likely a star-forming galaxy
+3 - Passes visual inspection, likely a quiescent galaxy
+4 - Passes visual inspection, broad-line AGN
