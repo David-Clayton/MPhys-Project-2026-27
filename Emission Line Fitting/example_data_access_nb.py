@@ -25,7 +25,7 @@ spectrum = np.loadtxt(r"C:\Users\drcla\OneDrive\MPhys Project\Emission Line Fitt
 # %%
 # Plotting the spectrum
 #spectrum[:,0] = wavelength, spectrum[:,1] = flux, spectrum[:,2] = flux_error
-plt.plot(spectrum[:,0],spectrum[:,1])
+"""plt.plot(spectrum[:,0],spectrum[:,1])
 plt.plot(spectrum[:,0],spectrum[:,2]) #What?
 
 plt.axvline(6716.*(1+z_spec),color='r', zorder=0)
@@ -33,7 +33,7 @@ plt.axvline(6731.*(1+z_spec),color='r', zorder=0)
 
 plt.xlabel('Wavelength [Angstrom]')
 plt.ylabel('Flux [erg/s/cm^2/Angstrom]')
-#plt.show()
+plt.show()
 
 # %%
 # Plotting the [SII] doublet
@@ -48,7 +48,7 @@ plt.axvline(6731.*(1+z_spec),color='r', zorder=0)
 
 plt.xlabel('Wavelength [Angstrom]')
 plt.ylabel('Flux [erg/s/cm^2/Angstrom]')
-#plt.show()
+plt.show()"""
 
 # %%
 def gaussian(wl, amp, mean, sigma):
@@ -80,9 +80,9 @@ def residuals(theta, wl, flux):
 
 def fit_sii_doublet(wl, flux, redshift):
     # Find the best fit parameters by minimising the residuals^2, so minimising (model-data)^2
-    initial = np.array([1., 1., 30, 0.2, 0.2, redshift]) # your initial guess
+    initial = np.array([1, 1, 30, 0.2, 0.2, redshift]) # your initial guess
     sii_mask = (wl>6600.*(1+redshift)) & (wl<6845.*(1+redshift))
-    result = least_squares(residuals, initial, args=(wl[sii_mask],1e19*flux[sii_mask])) # Finding the best parameters
+    result = least_squares(residuals, initial, args=(wl[sii_mask], 1e19*flux[sii_mask])) # Finding the best parameters
     best_params = result.x
     return best_params
 
@@ -92,40 +92,40 @@ amp1, amp2, sigma, conta, contb = fit_sii_doublet(spectrum[:,0],spectrum[:,1], z
 """IMPORTANT PLOTTING FUNCTION"""
 # %%
 # Plotting the [SII] doublet
-plt.figure(dpi=200)
+plt.figure(dpi=100)
 sii_mask = (spectrum[:,0]>6600.*(1+z_spec)) & (spectrum[:,0]<6845.*(1+z_spec))
-
+#Empirical flux measurements
 plt.plot(spectrum[:,0][sii_mask],spectrum[:,1][sii_mask], color = "limegreen")
 plt.fill_between(spectrum[:,0][sii_mask], spectrum[:,1][sii_mask] - spectrum[:,2][sii_mask], 
                  spectrum[:,1][sii_mask] + spectrum[:,2][sii_mask], alpha=0.5, color = "limegreen") #How to express errors with shading
 
 line = np.linspace(6600.*(1+z_spec), 6845.*(1+z_spec), 1000)
-
+#Fit
 plt.plot(
     line,
-    doublet(line, 1e19*amp1, 1e19*amp2, 6716*(1+z_spec),6731*(1+z_spec), sigma, conta, contb)
+    1e-19 * doublet(line, amp1, amp2, 6716*(1+z_spec),6731*(1+z_spec), sigma, conta, contb)
     , color = "mediumpurple")
-plt.xlabel('Wavelength [Angstrom]')
-plt.ylabel('Flux [erg/s/cm^2/Angstrom]')
-plt.show()
 
 # Plotting the individual gaussians
 plt.plot(
     line,
-    gaussian(line, amp1, 6716.*(1+z_spec), sigma) + continuum(line, conta, contb),
+    1e-19 * (gaussian(line, amp1, 6716.*(1+z_spec), sigma) + continuum(line, conta, contb)),
     color='r', linewidth=0.6
     )
 
 plt.plot(
     line,
-    gaussian(line, amp2, 6731.*(1+z_spec), sigma) + continuum(line, conta, contb),
+    1e-19 * (gaussian(line, amp2, 6731.*(1+z_spec), sigma) + continuum(line, conta, contb)),
     color='r', linewidth=0.6
     )
 
 
 plt.xlabel('Wavelength [Angstrom]')
 plt.ylabel('Flux [erg/s/cm^2/Angstrom]')
+plt.savefig("Singlefittedspectrum.png")
 plt.show()
+
+print(f"Amp6716 = {amp1}, Amp6731 = {amp2}, width = {sigma}A, continuum linear term = {conta}, continuum constant = {contb}, redshift = {z_spec}")
 
 # %% [markdown]
 # To find the optimal parameters we use the scipy least_squares function. This function is designed to find the optimum parameters where the residuals^2 are minimised (hence the name "least squares").
@@ -186,7 +186,7 @@ error = spectrum[:,2]
 nmonte=50
 for _ in range(nmonte):
   _flux = flux + np.random.normal(size=len(wave), scale=error)
-  print(fit_sii_doublet(wave, _flux, z_spec)) #I don't know what this is supposed to do.
+  #print(fit_sii_doublet(wave, _flux, z_spec)) #I don't know what this is supposed to do.
 
 
 # %% [markdown]
