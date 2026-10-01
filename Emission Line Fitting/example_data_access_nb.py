@@ -20,7 +20,7 @@ z_spec = catalog[catalog['targetid']==40081]['z_excels_v1'][0]
 
 # %%
 # Loading the spectrum of target 40081
-spectrum = np.loadtxt(r"C:\Users\drcla\OneDrive\MPhys Project\Emission Line Fitting\spec1d_fluxcal\spec1d_40081_g395m_final.txt")
+spectrum = np.loadtxt(r"C:\Users\drcla\OneDrive\MPhys Project\Emission Line Fitting\spec1d_fluxcal\spec1d_40081_g235m_final.txt")
 
 # %%
 # Plotting the spectrum
@@ -122,7 +122,7 @@ plt.plot(
 
 plt.xlabel('Wavelength [Angstrom]')
 plt.ylabel('Flux [erg/s/cm^2/Angstrom]')
-plt.savefig("Singlefittedspectrum.png")
+#plt.savefig("Singlefittedspectrum.png")
 plt.show()
 
 print(f"Amp6716 = {amp1}, Amp6731 = {amp2}, width = {sigma}A, continuum linear term = {conta}, continuum constant = {contb}, redshift = {z_spec}")
@@ -195,7 +195,7 @@ for _ in range(nmonte):
 # At the top of the script where tou do your imports you will need to change the line `from astropy.table import Table` to `from astropy.table import Table, join`. This now additionally imports the `join` function that allows you to join tables.
 
 # %%
-bagpipes = Table.read(r"C:\Users\drcla\OneDrive\MPhys Project\Emission Line Fitting\spec1d_fluxcal\spec1d_40081_g395m_final.txt")
+bagpipes = Table.read(r"C:\Users\drcla\OneDrive\MPhys Project\Emission Line Fitting\spec1d_fluxcal\spec1d_40081_g235m_final.txt")
 # Fix the issue with the different class of the targetid
 bagpipes['targetid'] = [int(idx) for idx in bagpipes["#ID"]]
 
