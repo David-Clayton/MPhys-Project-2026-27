@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from astropy.table import Table, join
+from astropy.modeling import models,fitting
 from scipy.optimize import least_squares
 import re
 from pathlib import Path
@@ -14,12 +15,13 @@ class LineFitting:
     def __init__(self, file):
 
         filename = Path(file).name
-        match = re.search(r"spec1d_(\d+)_", filename)
+        match = re.search(r"spec1d_(\d+)_(g\d+m)_", filename)
 
         if match is None:
-            raise ValueError(f"Can't extract target ID from {filename}")
+            raise ValueError(f"Can't extract target ID and disperser from {filename}")
         
         self.target_id = int(match.group(1))
+        self.disperser = match.group(2)
         catalogue = Table.read(r"C:\Users\drcla\OneDrive\MPhys Project\Emission Line Fitting\excels_cat_internal_v2_0p5asec_120424_miri.fits")
         self.redshift = catalogue[catalogue["targetid"] == self.target_id]["z_excels_v1"][0]
 
@@ -28,78 +30,51 @@ class LineFitting:
         self.flux = flux_data[:,1]
         self.flux_err = flux_data[:,2]
 
-    def gaussian(self, amplitude, mean, sigma):
-        #Gaussian emission profile for the sulphur lines
-        return amplitude * np.exp(-(self.wavelengths - mean)**2/(2*sigma**2))
+    def sii_mask(self):
+        #Cut out the area of the spectrum surrounding the [SII] doublet
+        upper_lim = 6850*(1+self.redshift)
+        lower_lim = 6600*(1+self.redshift)
+        mask = (self.wavelengths < upper_lim) & (self.wavelengths > lower_lim)
+        return mask
 
-    def continuum(self, cont_lin, cont_const):
-        #Linear continuum fit for a narrow-ish band (~100A) around the [SII] doublet
-        return cont_lin*self.wavelengths + cont_const 
+    def spectrum_model(self, amp6716, amp6731, sigma, redshift):
+        #Fit a pair of Gaussians to the [SII] doublet and linear expression 
+        #to the continuum surrounding the doublet
+        continuum = models.Polynomial1D(1)
+        sii6716 = models.Gaussian1D(amplitude = amp6716, mean = 6716 * (1 + redshift), stddev = sigma)
+        sii6731 = models.Gaussian1D(amplitude = amp6731, mean = 6731 * (1 + redshift), stddev = sigma) 
+        model = continuum + sii6716 + sii6731
+        return model
 
-    def doublet(self, amp6716, amp6731, mean6716, mean6731, sigma, cont_lin, cont_const):
-        #Combine the Gaussians for the doublet with the continuum 
-        return self.continuum(cont_lin, cont_const) + self.gaussian(amp6716, mean6716, sigma) + self.gaussian(amp6731, mean6731, sigma)
-
-    def residuals(self, theta):
-        # Residual function, here "theta" is an array of all the free parameters
-        amp6716, amp6731, sigma, cont_lin, cont_const, self.redshift = theta
-        model = self.doublet(
-            amp6716,
-            amp6731,
-            6716*(1+self.redshift),
-            6731*(1+self.redshift),
-            sigma,
-            cont_lin, cont_const
-            )
-        return (self.flux - model)
-
-    def fit_sii_doublet(self):
-        # Find the best fit parameters by minimising the residuals^2, so minimising (model-data)^2
-        initial = np.array([1, 1, 30, 0.2, 0.2, self.redshift]) # your initial guess
-        sii_mask = (self.wavelengths>6600.*(1+self.redshift)) & (self.wavelengths<6845.*(1+self.redshift))
-        result = least_squares(self.residuals, initial, args=(self.wavelengths[sii_mask], 1e19*self.flux[sii_mask])) # Finding the best parameters
-        best_params = result.x
-        return best_params
+    def model_fit(self):
+        mask = self.sii_mask()
+        fit = fitting.LevMarLSQFitter()
+        #Best guess
+        initial_guess = self.spectrum_model(1, 1, 20, self.redshift)
+        fitted_model = fit(initial_guess, self.wavelengths[mask], self.flux[mask], maxiter=1000)
+        return fitted_model
 
     def plot_fit(self):
-        #Plot the raw spectral data, the [SII] doublet fit, and the individual [SII] Gaussians
+        mask = self.sii_mask()
+        #Plot empirical data
+        plt.plot(self.wavelengths[mask], self.flux[mask], color = "limegreen")
+        plt.fill_between(self.wavelengths[mask], self.flux[mask] - self.flux_err[mask], 
+                        self.flux[mask] + self.flux_err[mask], alpha=0.5, color = "limegreen") 
+        
+        #Plot fitted data
+        fitted_model = self.model_fit()
+        fitted_data = fitted_model(self.wavelengths[mask])
+        plt.plot(self.wavelengths[mask], fitted_data, color = "mediumpurple")
 
-        amp6716, amp6731, sigma, cont_lin, cont_const, fitted_z_= self.fit_sii_doublet()
-
-        # Plotting the [SII] doublet
-        sii_mask = (self.wavelengths>6600.*(1+self.redshift)) & (self.wavelengths<6845.*(1+self.redshift))
-        #Empirical flux measurements
-        plt.plot(self.wavelengths[sii_mask], self.flux[sii_mask], color = "limegreen")
-        plt.fill_between(self.wavelengths[sii_mask], self.flux[sii_mask] - self.flux_err[:,2][sii_mask], 
-                        self.flux[sii_mask] + self.flux_err[sii_mask], alpha=0.5, color = "limegreen") #How to express errors with shading
-
-        #Fitted spectrum
-        line = np.linspace(6600.*(1+self.redshift), 6845.*(1+self.redshift), 1000)
-        plt.plot(
-            line,
-            1e-19 * self.doublet(line, amp6716, amp6731, 6716*(1+self.redshift),6731*(1+self.redshift), sigma, cont_lin, cont_const)
-            , color = "mediumpurple")
-
-        # Plotting the individual gaussians
-        plt.plot(
-            line,
-            1e-19 * (self.gaussian(line, amp6716, 6716.*(1+self.redshift), sigma) + self.continuum(line, cont_lin, cont_const)),
-            color='r', linewidth=0.6
-            )
-
-        plt.plot(
-            line,
-            1e-19 * (self.gaussian(line, amp6731, 6731.*(1+self.redshift), sigma) + self.continuum(line, cont_lin, cont_const)),
-            color='r', linewidth=0.6
-            )
-
-
-        plt.xlabel('Wavelength [Angstrom]')
-        plt.ylabel('Flux [erg/s/cm^2/Angstrom]')
-        #plt.savefig("Singlefittedspectrum.png")
+        plt.xlabel(f"Lab-frame wavelength (Angstrom)")
+        plt.ylabel(f"Flux (erg/s/cm^-2/Angstrom)")
+        plt.title(f"S[II] doublet of Target {self.target_id} \n with disperser {self.disperser}")
+        plt.savefig(f"Testfittedspectrum.png")
         plt.show()
 
-l = LineFitting(r"C:\Users\drcla\OneDrive\MPhys Project\Emission Line Fitting\spec1d_fluxcal\spec1d_40081_g235m_final.txt")
+        print(self.redshift)
+
+l = LineFitting(r"C:\Users\drcla\OneDrive\MPhys Project\Emission Line Fitting\spec1d_fluxcal\spec1d_40081_g395m_final.txt")
 l.plot_fit()
 
 
