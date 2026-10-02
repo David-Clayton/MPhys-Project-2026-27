@@ -61,4 +61,45 @@ class LineFitting:
         best_params = result.x
         return best_params
 
-    
+    def plot_fit(self):
+        #Plot the raw spectral data, the [SII] doublet fit, and the individual [SII] Gaussians
+
+        amp6716, amp6731, sigma, cont_lin, cont_const, fitted_z_= self.fit_sii_doublet()
+
+        # Plotting the [SII] doublet
+        sii_mask = (self.wavelengths>6600.*(1+self.redshift)) & (self.wavelengths<6845.*(1+self.redshift))
+        #Empirical flux measurements
+        plt.plot(self.wavelengths[sii_mask], self.flux[sii_mask], color = "limegreen")
+        plt.fill_between(self.wavelengths[sii_mask], self.flux[sii_mask] - self.flux_err[:,2][sii_mask], 
+                        self.flux[sii_mask] + self.flux_err[sii_mask], alpha=0.5, color = "limegreen") #How to express errors with shading
+
+        #Fitted spectrum
+        line = np.linspace(6600.*(1+self.redshift), 6845.*(1+self.redshift), 1000)
+        plt.plot(
+            line,
+            1e-19 * self.doublet(line, amp6716, amp6731, 6716*(1+self.redshift),6731*(1+self.redshift), sigma, cont_lin, cont_const)
+            , color = "mediumpurple")
+
+        # Plotting the individual gaussians
+        plt.plot(
+            line,
+            1e-19 * (self.gaussian(line, amp6716, 6716.*(1+self.redshift), sigma) + self.continuum(line, cont_lin, cont_const)),
+            color='r', linewidth=0.6
+            )
+
+        plt.plot(
+            line,
+            1e-19 * (self.gaussian(line, amp6731, 6731.*(1+self.redshift), sigma) + self.continuum(line, cont_lin, cont_const)),
+            color='r', linewidth=0.6
+            )
+
+
+        plt.xlabel('Wavelength [Angstrom]')
+        plt.ylabel('Flux [erg/s/cm^2/Angstrom]')
+        #plt.savefig("Singlefittedspectrum.png")
+        plt.show()
+
+l = LineFitting(r"C:\Users\drcla\OneDrive\MPhys Project\Emission Line Fitting\spec1d_fluxcal\spec1d_40081_g235m_final.txt")
+l.plot_fit()
+
+
