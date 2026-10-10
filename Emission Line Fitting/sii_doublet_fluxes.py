@@ -16,6 +16,13 @@ class SIILineFitting:
     squared fitting algorithm. The model in question is a pair of Gaussians to model the doublet and
     a linear polynomial to model the continuum around the doublet.
     """
+    @staticmethod
+    def sii_mask(redshift, wavelengths):
+            #Cut out the area of the spectrum surrounding the [SII] doublet
+            upper_lim = 6850*(1+redshift)
+            lower_lim = 6600*(1+redshift)
+            mask = (wavelengths < upper_lim) & (wavelengths > lower_lim)
+            return mask
 
     def __init__(self, file):
 
@@ -35,12 +42,9 @@ class SIILineFitting:
         self.flux = 1e20 * flux_data[:,1] #Scale it up to improve fitter's numerical precision
         self.flux_err = 1e20 * flux_data[:,2]
 
-    def sii_mask(self):
-        #Cut out the area of the spectrum surrounding the [SII] doublet
-        upper_lim = 6850*(1+self.redshift)
-        lower_lim = 6600*(1+self.redshift)
-        mask = (self.wavelengths < upper_lim) & (self.wavelengths > lower_lim)
-        return mask
+        #Check for presence of doublet in masked area of spectrum
+        #A chip gap will return a flux of 0 in the gap
+        mask = self.sii_mask(self.redshift, self.wavelengths)
 
     def spectrum_model(self, amp6716, amp6731, sigma, redshift):
         """Create a theoretical model of the spectrum around the [SII] doublet as
@@ -123,8 +127,6 @@ class SIILineFitting:
         #print(f"flux for [SII]6716 = {flux6716} +- {flux6716_err}")
         #print(f"flux for [SII]6731 = {flux6731} +- {flux6731_err}")
 
-l = SIILineFitting(r"C:\Users\drcla\OneDrive\MPhys Project\Emission Line Fitting\spec1d_fluxcal\spec1d_40081_g395m_final.txt")
-l.plot_fit()
-l.calculate_fluxes()
+l = SIILineFitting(r"C:\Users\drcla\OneDrive\MPhys Project\Emission Line Fitting\spec1d_fluxcal\spec1d_34495_g140m_final.txt")
 
 
