@@ -46,6 +46,24 @@ class SIILineFitting:
         #A chip gap will return a flux of 0 in the gap
         mask = self.sii_mask(self.redshift, self.wavelengths)
 
+        self.valid = True
+        #Conditional for if doublet window is partially/entirely off the edge of the spectrum
+        if np.min(self.wavelengths) > 6600 * (1+self.redshift) or np.max(self.wavelengths) < 6850 * (1 + self.redshift):
+            print(f"SII doublet is not in range")
+            self.valid = False
+            return 
+        
+        #Conditional for if doublet overlaps with chip gap
+        masked_flux = self.flux[mask]
+        #Bad pixels are either in a chip gap, or otherwise have NaN fluxes for whatever reason
+        bad_pixels = (masked_flux == 0) | np.isnan(masked_flux)
+
+        #Reject doublet measurement if the chip gap or other issues affects more than 10% of pixels in the mask
+        if np.count_nonzero(bad_pixels) > 0.1 * len(masked_flux):
+            print(f"Doublet interrupted by chip gap")
+            self.valid = False
+            return
+
     def spectrum_model(self, amp6716, amp6731, sigma, redshift):
         """Create a theoretical model of the spectrum around the [SII] doublet as
         a pair of Gaussians for the doublet and a linear function to model the 
@@ -61,7 +79,10 @@ class SIILineFitting:
 
     def model_fit(self):
         """Use Astropy Lev-Mar Least Squares fitter to fit the model to the data"""
-        mask = self.sii_mask()
+        if not self.valid:
+            return
+    
+        mask = self.sii_mask(self.redshift, self.wavelengths)
         fitter = fitting.LevMarLSQFitter(calc_uncertainties=True)
         #Initial guess of fit parameters
         initial_guess = self.spectrum_model(1, 1, 20, self.redshift)
@@ -86,7 +107,9 @@ class SIILineFitting:
 
     def plot_fit(self):
         """Plot empirical data with resultant fitted data from Lev-Mar method"""
-        mask = self.sii_mask()
+        if not self.valid:
+            return
+        mask = self.sii_mask(self.redshift, self.wavelengths)
         #Plot empirical data
         plt.plot(self.wavelengths[mask], self.flux[mask], color = "limegreen")
         #plt.errorbar(self.wavelengths[mask], self.flux[mask], yerr = self.flux_err[mask], color = "limegreen")
@@ -100,8 +123,8 @@ class SIILineFitting:
         fitted_data = fitted_model(x_data)
 
         plt.plot(x_data, fitted_data, color = "mediumpurple")
-        plt.axvline(6716 * (1+self.redshift), color = "darkblue")
-        plt.axvline(6731 * (1+self.redshift), color = "darkblue")
+        #plt.axvline(6716 * (1+self.redshift), color = "darkblue")
+        #plt.axvline(6731 * (1+self.redshift), color = "darkblue")
         plt.xlabel(f"Lab-frame wavelength (Angstrom)")
         plt.ylabel(r"Flux ($10^{-20}$erg/s/$cm^{-2}$/Angstrom)")
         plt.title(f"Target {self.target_id} \n with disperser {self.disperser}. z = {self.redshift}")
@@ -109,7 +132,12 @@ class SIILineFitting:
         plt.show()
 
     def calculate_fluxes(self):
-        """Calculate the fluxes and uncertainties on the two [SII] emission lines"""
+        """Calculate the fluxes and uncertainties on the two [SII] emission lines.
+        Also calculate the best fit for the redshifts."""
+        #Return NaNs if doublet not present in spectrum or affected by chip gap
+        if not self.valid:
+            return np.nan, np.nan, np.nan, np.nan
+        
         #Extract the variances of the parameters from the fit's covariance matrix
         fit_parameters, fitter = self.model_fit()
         stddevs = np.sqrt(np.diag(fitter.fit_info['param_cov']))
@@ -127,6 +155,22 @@ class SIILineFitting:
         #print(f"flux for [SII]6716 = {flux6716} +- {flux6716_err}")
         #print(f"flux for [SII]6731 = {flux6731} +- {flux6731_err}")
 
+        return flux6716, flux6716_err, flux6731, flux6731_err
+
+    def return_fit_params(self):
+        """Return the parameters of the Lev-Mar fit"""
+
+        if not self.valid:
+            return (np.nan,) * 16
+        fit_parameters, fitter = self.model_fit()
+        stddevs = np.sqrt(np.diag(fitter.fit_info['param_cov']))
+        c0, c1, amp6716, mean6716, stddev6716, amp6731, mean6731, stddev6731 = fit_parameters.parameters
+        c0_err, c1_err, amp6716_err, mean6716_err, stddev6716_err, amp6731_err, mean6731_err, stddev6731_err = stddevs
+
+        return (c0, c0_err, c1, c1_err, amp6716, amp6716_err, mean6716, mean6716_err,
+        stddev6716, stddev6716_err, amp6731, amp6731_err, mean6731, mean6731_err,
+        stddev6731, stddev6731_err)
+
 l = SIILineFitting(r"C:\Users\drcla\OneDrive\MPhys Project\Emission Line Fitting\spec1d_fluxcal\spec1d_34495_g140m_final.txt")
-
-
+f16, f16e, f31, f31e = l.calculate_fluxes()
+print(f"{f16}, {f16e}, {f31}, {f31e}")
