@@ -105,7 +105,7 @@ class SIILineFitting:
         #print(fitter.fit_info["param_cov"])
         return fit_to_model, fitter
 
-    def plot_fit(self):
+    def plot_fit(self, output_file):
         """Plot empirical data with resultant fitted data from Lev-Mar method"""
         if not self.valid:
             return
@@ -125,10 +125,10 @@ class SIILineFitting:
         plt.plot(x_data, fitted_data, color = "mediumpurple")
         #plt.axvline(6716 * (1+self.redshift), color = "darkblue")
         #plt.axvline(6731 * (1+self.redshift), color = "darkblue")
-        plt.xlabel(f"Lab-frame wavelength (Angstrom)")
-        plt.ylabel(r"Flux ($10^{-20}$erg/s/$cm^{-2}$/Angstrom)")
+        plt.xlabel(r"Lab-frame wavelength (\r{A})")
+        plt.ylabel(r"Flux ($10^{-20}$erg/s/$cm^{-2}$/\r{A})")
         plt.title(f"Target {self.target_id} \n with disperser {self.disperser}. z = {self.redshift}")
-        plt.savefig(f"Testfittedspectrum.png")
+        plt.savefig(output_file)
         plt.show()
 
     def calculate_fluxes(self):
@@ -155,7 +155,15 @@ class SIILineFitting:
         #print(f"flux for [SII]6716 = {flux6716} +- {flux6716_err}")
         #print(f"flux for [SII]6731 = {flux6731} +- {flux6731_err}")
 
-        return flux6716, flux6716_err, flux6731, flux6731_err
+        #Redshifts from the fit
+        redshift6716 = (mean6716 / 6716) - 1
+        redshift6716_err = mean6716_err / 6716
+
+        redshift6731 = (mean6731 / 6731) - 1
+        redshift6731_err = mean6731_err / 6731
+
+        return (flux6716, flux6716_err, flux6731, flux6731_err, redshift6716, 
+                redshift6716_err, redshift6731, redshift6731_err)
 
     def return_fit_params(self):
         """Return the parameters of the Lev-Mar fit"""
@@ -170,7 +178,3 @@ class SIILineFitting:
         return (c0, c0_err, c1, c1_err, amp6716, amp6716_err, mean6716, mean6716_err,
         stddev6716, stddev6716_err, amp6731, amp6731_err, mean6731, mean6731_err,
         stddev6731, stddev6731_err)
-
-l = SIILineFitting(r"C:\Users\drcla\OneDrive\MPhys Project\Emission Line Fitting\spec1d_fluxcal\spec1d_34495_g140m_final.txt")
-f16, f16e, f31, f31e = l.calculate_fluxes()
-print(f"{f16}, {f16e}, {f31}, {f31e}")
