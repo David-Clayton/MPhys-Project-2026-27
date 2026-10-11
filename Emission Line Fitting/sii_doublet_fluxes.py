@@ -85,7 +85,7 @@ class SIILineFitting:
         mask = self.sii_mask(self.redshift, self.wavelengths)
         fitter = fitting.LevMarLSQFitter(calc_uncertainties=True)
         #Initial guess of fit parameters
-        initial_guess = self.spectrum_model(1, 1, 20, self.redshift)
+        initial_guess = self.spectrum_model(5, 5, 5, self.redshift)
         #Fit model to masked data
         fit_to_model = fitter(initial_guess, self.wavelengths[mask], self.flux[mask], maxiter=1000)
         #print(fit_to_model.parameters)
@@ -105,7 +105,7 @@ class SIILineFitting:
         #print(fitter.fit_info["param_cov"])
         return fit_to_model, fitter
 
-    def plot_fit(self, output_file):
+    def plot_fit(self, output_file, residual_file):
         """Plot empirical data with resultant fitted data from Lev-Mar method"""
         if not self.valid:
             return
@@ -129,7 +129,19 @@ class SIILineFitting:
         plt.ylabel(r"Flux ($10^{-20}$erg/s/$cm^{-2}$/\r{A})")
         plt.title(f"Target {self.target_id} \n with disperser {self.disperser}. z = {self.redshift}")
         plt.savefig(output_file)
-        plt.show()
+        plt.close()
+
+        #Residuals
+        resid_fit_data = fitted_model(self.wavelengths[mask])
+        resid = resid_fit_data - self.flux[mask]
+        plt.plot(self.wavelengths[mask], resid, color = "orange")
+        plt.axvline(6716 * (1+self.redshift), color = "darkblue")
+        plt.axvline(6731 * (1+self.redshift), color = "darkblue")
+        plt.axhline(0, color = "blue", ls = ":")
+        plt.xlabel(r"Lab-frame wavelength (\r{A})")
+        plt.ylabel(r"Residual ($10^{-20}$erg/s/$cm^{-2}$/\r{A})")
+        plt.savefig(residual_file)
+        plt.close()
 
     def calculate_fluxes(self):
         """Calculate the fluxes and uncertainties on the two [SII] emission lines.
@@ -161,9 +173,10 @@ class SIILineFitting:
 
         redshift6731 = (mean6731 / 6731) - 1
         redshift6731_err = mean6731_err / 6731
-
+        
         return (flux6716, flux6716_err, flux6731, flux6731_err, redshift6716, 
-                redshift6716_err, redshift6731, redshift6731_err)
+                redshift6716_err, redshift6731, redshift6731_err,
+                (redshift6716-redshift6731)/redshift6716_err, (redshift6716-redshift6731)/redshift6731_err)
 
     def return_fit_params(self):
         """Return the parameters of the Lev-Mar fit"""
@@ -178,3 +191,7 @@ class SIILineFitting:
         return (c0, c0_err, c1, c1_err, amp6716, amp6716_err, mean6716, mean6716_err,
         stddev6716, stddev6716_err, amp6731, amp6731_err, mean6731, mean6731_err,
         stddev6731, stddev6731_err)
+
+l = SIILineFitting(r"C:\Users\drcla\OneDrive\MPhys Project\Emission Line Fitting\spec1d_fluxcal\spec1d_40081_g395m_final.txt")
+l.calculate_fluxes()
+
