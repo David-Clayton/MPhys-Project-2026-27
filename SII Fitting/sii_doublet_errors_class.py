@@ -41,7 +41,7 @@ class SIIMonteCarlo:
         
         self.target_id = int(match.group(1))
         self.disperser = match.group(2)
-        catalogue = Table.read(r"C:\Users\drcla\OneDrive\MPhys Project\Emission Line Fitting\excels_cat_internal_v2_0p5asec_120424_miri.fits")
+        catalogue = Table.read(r"C:\Users\drcla\OneDrive\MPhys Project\SII Fitting\excels_cat_internal_v2_0p5asec_120424_miri.fits")
         self.redshift = catalogue[catalogue["targetid"] == self.target_id]["z_excels_v1"][0]
 
         flux_data = np.loadtxt(file)
@@ -178,7 +178,9 @@ class SIIMonteCarlo:
         return (flux6716, flux6716_error, 
                 flux6731, flux6731_error,
                 redshift6716, redshift6716_error,
-                redshift6731, redshift6731_error)
+                redshift6731, redshift6731_error,
+                (redshift6731 - redshift6716)/redshift6716_error,
+                (redshift6731 - redshift6716)/redshift6731_error)
 
 
 

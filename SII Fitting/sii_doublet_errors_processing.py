@@ -1,0 +1,45 @@
+import csv
+from pathlib import Path
+from sii_doublet_errors_class import SIIMonteCarlo
+
+# Create directories
+input_dir = Path(
+    r"C:\Users\drcla\OneDrive\MPhys Project\SII Fitting\spec1d_fluxcal_doublets_found"
+)
+#Empty lists
+flux_rows = []
+
+#Headers for csv
+flux_header = [
+    "target_id",
+    "disperser",
+    "flux6716",
+    "flux6716_err",
+    "flux6731",
+    "flux6731_err",
+    "redshift6716",
+    "redshift6716_err",
+    "redshift6731",
+    "redshift6731_err",
+    "(z31-z16)/z16_err",
+    "(z31-z16)/z31_err",
+]
+files = sorted(input_dir.glob("spec1d_*.txt"))
+
+for index, file_path in enumerate(sorted(input_dir.glob("spec1d_*.txt"))):
+    line_fitter = SIIMonteCarlo(str(file_path))
+    
+    results = line_fitter.monte_carlo()
+
+    flux_rows.append([
+        line_fitter.target_id,
+        line_fitter.disperser,
+        *results,
+    ])
+
+    print(f"File no. {index + 1} out of {len(files)} processed.")
+
+with open("sii_fluxes_mc.csv", "w", newline="") as file:
+    writer = csv.writer(file)
+    writer.writerow(flux_header)
+    writer.writerows(flux_rows)
