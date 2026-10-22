@@ -4,13 +4,13 @@ from sii_doublet_fluxes import SIILineFitting
 
 # Create directories
 input_dir = Path(
-    r"C:\Users\drcla\OneDrive\MPhys Project\Emission Line Fitting\spec1d_fluxcal"
+    r"C:\Users\drcla\OneDrive\MPhys Project\SII Fitting\spec1d_fluxcal"
 )
 plot_dir = Path(
-    r"C:\Users\drcla\OneDrive\MPhys Project\Emission Line Fitting\Plotsv2"
+    r"C:\Users\drcla\OneDrive\MPhys Project\SII Fitting\Plots"
 )
 res_plot_dir = Path(
-    r"C:\Users\drcla\OneDrive\MPhys Project\Emission Line Fitting\Residuals"
+    r"C:\Users\drcla\OneDrive\MPhys Project\SII Fitting\Residuals"
 )
 
 #This makes the directory if it didn't already exist. If it did exist and exist_ok = True, it would raise
@@ -82,12 +82,12 @@ for index, file_path in enumerate(sorted(input_dir.glob("spec1d_*.txt"))):
 
     print(f"File no. {index + 1} out of {len(sorted(input_dir.glob("spec1d_*.txt")))} processed.")
 
-with open("sii_fluxesv2.csv", "w", newline="") as file:
+with open("sii_fluxes.csv", "w", newline="") as file:
     writer = csv.writer(file)
     writer.writerow(flux_header)
     writer.writerows(flux_rows)
 
-with open("sii_fit_parametersv2.csv", "w", newline="") as file:
+with open("sii_fit_parameters.csv", "w", newline="") as file:
     writer = csv.writer(file)
     writer.writerow(parameter_header)
     writer.writerows(parameter_rows)

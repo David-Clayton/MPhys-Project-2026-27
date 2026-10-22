@@ -54,12 +54,30 @@ class SIIMonteCarlo:
         mask = self.sii_mask(self.redshift, self.wavelengths)
 
         self.valid = True
-        #Conditional for if doublet window is partially/entirely off the edge of the spectrum
-        if np.min(self.wavelengths) > 6600 * (1+self.redshift) or np.max(self.wavelengths) < 6850 * (1 + self.redshift):
+        #Conditional for if spectrum is sufficiently within masked doublet range
+        #Limits of my doublet mask
+        upper_mask_limit = 6850 * (1 + self.redshift)
+        lower_mask_limit = 6600 * (1 + self.redshift)
+        mask_width = upper_mask_limit - lower_mask_limit
+
+        #Limits of data spectrum
+        upper_data_limit = np.max(self.wavelengths)
+        lower_data_limit = np.min(self.wavelengths)
+
+        overlap = max(0, min(upper_mask_limit, upper_data_limit) - max(lower_mask_limit, lower_data_limit))
+        overlap_ratio = overlap / mask_width
+        #Fraction of doublet range in overlap - less than 90% of doublet in spectrum
+        if overlap_ratio == 0 :
             print(f"SII doublet is not in range")
             self.valid = False
             return 
-        
+
+        #Reject if more than 10% of the doublet window is out of range
+        elif overlap_ratio < 0.9:
+            print(f"{overlap_ratio * 100}% of SII doublet window is out of range")
+            self.valid = False
+            return        
+
         #Conditional for if doublet overlaps with chip gap
         masked_flux = self.flux[mask]
         #Bad pixels are either in a chip gap, or otherwise have NaN fluxes for whatever reason
@@ -175,12 +193,8 @@ class SIIMonteCarlo:
         redshift6731 = np.nanmedian(redshift6731_gauss_dist)
         redshift6731_error = (redshift6731_error_upper + redshift6731_error_lower) / 2
 
-        return (flux6716, flux6716_error, 
-                flux6731, flux6731_error,
-                redshift6716, redshift6716_error,
-                redshift6731, redshift6731_error,
-                (redshift6731 - redshift6716)/redshift6716_error,
-                (redshift6731 - redshift6716)/redshift6731_error)
+        return (flux6716, flux6716_error, flux6731, flux6731_error,
+                redshift6716, redshift6716_error, redshift6731, redshift6731_error)
 
 
 

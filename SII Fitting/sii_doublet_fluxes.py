@@ -47,11 +47,29 @@ class SIILineFitting:
         mask = self.sii_mask(self.redshift, self.wavelengths)
 
         self.valid = True
-        #Conditional for if doublet window is partially/entirely off the edge of the spectrum
-        if np.min(self.wavelengths) > 6600 * (1+self.redshift) or np.max(self.wavelengths) < 6850 * (1 + self.redshift):
+        #Conditional for if spectrum is sufficiently within masked doublet range
+        #Limits of my doublet mask
+        upper_mask_limit = 6850 * (1 + self.redshift)
+        lower_mask_limit = 6600 * (1 + self.redshift)
+        mask_width = upper_mask_limit - lower_mask_limit
+ 
+        #Limits of data spectrum
+        upper_data_limit = np.max(self.wavelengths)
+        lower_data_limit = np.min(self.wavelengths)
+ 
+        overlap = max(0, min(upper_mask_limit, upper_data_limit) - max(lower_mask_limit, lower_data_limit))
+        overlap_ratio = overlap / mask_width
+        #Fraction of doublet range in overlap - less than 90% of doublet in spectrum
+        if overlap_ratio == 0 :
             print(f"SII doublet is not in range")
             self.valid = False
             return 
+ 
+        #Reject if more than 10% of the doublet window is out of range
+        elif overlap_ratio < 0.9:
+            print(f"{(1 - overlap_ratio) * 100}% of SII doublet window is out of range")
+            self.valid = False
+            return        
         
         #Conditional for if doublet overlaps with chip gap
         masked_flux = self.flux[mask]
@@ -191,7 +209,4 @@ class SIILineFitting:
         return (c0, c0_err, c1, c1_err, amp6716, amp6716_err, mean6716, mean6716_err,
         stddev6716, stddev6716_err, amp6731, amp6731_err, mean6731, mean6731_err,
         stddev6731, stddev6731_err)
-
-l = SIILineFitting(r"C:\Users\drcla\OneDrive\MPhys Project\Emission Line Fitting\spec1d_fluxcal\spec1d_40081_g395m_final.txt")
-l.calculate_fluxes()
 
