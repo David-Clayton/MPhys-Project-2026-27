@@ -44,3 +44,4 @@ ax2.set_xlabel(r"$z_{EXCELS}$ - $z_{6731}$")
 
 plt.savefig("redshift_histogram.png")
 plt.show()
+
