@@ -1,6 +1,6 @@
 import csv
 from pathlib import Path
-from sii_doublet_errors_class import SIIMonteCarlo
+from sii_doublet_montecarlo_class import SIIMonteCarlo
 
 # Create directories
 input_dir = Path(

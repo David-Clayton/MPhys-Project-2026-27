@@ -194,7 +194,9 @@ class SIIMonteCarlo:
         redshift6731_error = (redshift6731_error_upper + redshift6731_error_lower) / 2
 
         return (flux6716, flux6716_error, flux6731, flux6731_error,
-                redshift6716, redshift6716_error, redshift6731, redshift6731_error)
+                redshift6716, redshift6716_error, redshift6731, redshift6731_error,
+                (redshift6731 - redshift6716)/redshift6716_error,
+                (redshift6731 - redshift6716)/redshift6731_error)
 
 
 
