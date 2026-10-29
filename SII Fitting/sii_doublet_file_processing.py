@@ -2,22 +2,29 @@ import csv
 from pathlib import Path
 from sii_doublet_fluxes import SIILineFitting
 
+""" These paths are for Windows, not Linux, I will keep these commented out for now"""
 # Create directories
-input_dir = Path(
-    r"C:\Users\drcla\OneDrive\MPhys Project\SII Fitting\spec1d_fluxcal"
-)
-plot_dir = Path(
-    r"C:\Users\drcla\OneDrive\MPhys Project\SII Fitting\Plots"
-)
-res_plot_dir = Path(
-    r"C:\Users\drcla\OneDrive\MPhys Project\SII Fitting\Residuals"
-)
+#input_dir = Path(r"C:\Users\drcla\OneDrive\MPhys Project\SII Fitting\spec1d_fluxcal")
+#plot_dir = Path(r"C:\Users\drcla\OneDrive\MPhys Project\SII Fitting\Plots")
+#res_plot_dir = Path(r"C:\Users\drcla\OneDrive\MPhys Project\SII Fitting\Residuals")
+#csv_dir = Path(r"C:\Users\drcla\OneDrive\MPhys Project\SII Fitting")
+
+
+"""Linux paths (temporary)"""
+sii_fitting_dir = Path(__file__).resolve().parent
+#__file__ is a special Python variable containing the path of the currently running Python script. 
+#Parent means the directory above
+input_dir = sii_fitting_dir / "spec1d_fluxcal"
+plot_dir = sii_fitting_dir / "Plots"
+res_plot_dir = sii_fitting_dir / "Residuals"
+csv_dir = sii_fitting_dir
 
 #This makes the directory if it didn't already exist. If it did exist and exist_ok = True, it would raise
 #an error, if it did exist and exist_ok = False, and it was a file, it would raise an error.
 #Since it exists and exist_ok = False and it is a directory, it won't raise an error or do anything.
 plot_dir.mkdir(exist_ok=True)
 res_plot_dir.mkdir(exist_ok=True)
+csv_dir.mkdir(exist_ok=True)
 
 #Empty lists
 flux_rows = []
@@ -82,12 +89,12 @@ for index, file_path in enumerate(sorted(input_dir.glob("spec1d_*.txt"))):
 
     print(f"File no. {index + 1} out of {len(sorted(input_dir.glob("spec1d_*.txt")))} processed.")
 
-with open("sii_fluxes.csv", "w", newline="") as file:
+with open(csv_dir / "sii_fluxes.csv", "w", newline="") as file:
     writer = csv.writer(file)
     writer.writerow(flux_header)
     writer.writerows(flux_rows)
 
-with open("sii_fit_parameters.csv", "w", newline="") as file:
+with open(csv_dir / "sii_fit_parameters.csv", "w", newline="") as file:
     writer = csv.writer(file)
     writer.writerow(parameter_header)
     writer.writerows(parameter_rows)

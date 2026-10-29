@@ -34,7 +34,14 @@ class SIILineFitting:
         
         self.target_id = int(match.group(1))
         self.disperser = match.group(2)
-        catalogue = Table.read(r"C:\Users\drcla\OneDrive\MPhys Project\SII Fitting\excels_cat_internal_v2_0p5asec_120424_miri.fits")
+
+        #Temporary Linux path
+        sii_fitting_dir = Path(__file__).resolve().parent
+        catalogue_path = sii_fitting_dir / "excels_cat_internal_v2_0p5asec_120424_miri.fits"
+        catalogue = Table.read(catalogue_path)
+
+        #Windows path, commented out while working on Linux
+        #catalogue = Table.read(r"C:\Users\drcla\OneDrive\MPhys Project\SII Fitting\excels_cat_internal_v2_0p5asec_120424_miri.fits")
         self.redshift = catalogue[catalogue["targetid"] == self.target_id]["z_excels_v1"][0]
 
         flux_data = np.loadtxt(file)
