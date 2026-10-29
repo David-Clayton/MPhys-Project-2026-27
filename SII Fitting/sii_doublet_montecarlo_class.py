@@ -89,6 +89,16 @@ class SIIMonteCarlo:
             self.valid = False
             return
 
+        #Cut out the area of the spectrum surrounding the [SII] doublet to get just the continuum
+        continuum_mask = self.flux[~mask]
+        #Residuals of estimated continuum subtracted spectra
+        residual = continuum_mask - np.median(continuum_mask)
+        #NMAD of residuals with normalisation constant assumed to be 1.4826
+        nmad = 1.4826 * np.median(np.abs(residual - np.median(residual)))
+        scale_factor = nmad / np.median(self.flux_err[~mask])
+        #Multiply flux errors by the scale factor
+        self.flux_err = scale_factor * self.flux_err
+
     def spectrum_model(self, amp6716, amp6731, sigma, redshift, cont_const, cont_lin):
         """Create a theoretical model of the spectrum around the [SII] doublet as
         a pair of Gaussians for the doublet and a linear function to model the 
@@ -112,7 +122,7 @@ class SIIMonteCarlo:
         #Initial guess of fit parameters
         initial_guess = self.spectrum_model(np.max(self.flux[mask]), np.max(self.flux[mask]), 5 * (1 + self.redshift), self.redshift, np.median(self.flux[mask]) , 0)
         #Fit model to masked data
-        fit_to_model = fitter(initial_guess, self.wavelengths[mask], self.flux[mask], maxiter=1000)
+        fit_to_model = fitter(initial_guess, self.wavelengths[mask], self.flux[mask], weights=1 / self.flux_err[mask], maxiter=1000)
         #print(fit_to_model.parameters)
         """
         fit_to_model.parameters is as follows:
