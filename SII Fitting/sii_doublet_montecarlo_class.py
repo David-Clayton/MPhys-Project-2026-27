@@ -140,6 +140,44 @@ class SIIMonteCarlo:
         #print(fitter.fit_info["param_cov"])
         return fit_to_model, fitter
 
+    def plot_fit(self, output_file, residual_file):
+        """Plot empirical data with resultant fitted data from Lev-Mar method"""
+        if not self.valid:
+            return
+        mask = self.sii_mask(self.redshift, self.wavelengths)
+        #Plot empirical data
+        plt.plot(self.wavelengths[mask], self.flux[mask], color = "limegreen")
+        #plt.errorbar(self.wavelengths[mask], self.flux[mask], yerr = self.flux_err[mask], color = "limegreen")
+        plt.fill_between(self.wavelengths[mask], self.flux[mask] - self.flux_err[mask], 
+                        self.flux[mask] + self.flux_err[mask], alpha=0.5, color = "limegreen") 
+        
+        #Plot fitted data
+        fitted_model = self.model_fit()[0]
+        #Expand wavelength data for less janky curve
+        x_data = np.linspace(np.min(self.wavelengths[mask]), np.max(self.wavelengths[mask]), 1000)   
+        fitted_data = fitted_model(x_data)
+
+        plt.plot(x_data, fitted_data, color = "mediumpurple")
+        #plt.axvline(6716 * (1+self.redshift), color = "darkblue")
+        #plt.axvline(6731 * (1+self.redshift), color = "darkblue")
+        plt.xlabel(r"Lab-frame wavelength (\r{A})")
+        plt.ylabel(r"Flux ($10^{-20}$erg/s/$cm^{-2}$/\r{A})")
+        plt.title(f"Target {self.target_id} \n with disperser {self.disperser}. z = {self.redshift}")
+        plt.savefig(output_file)
+        plt.close()
+
+        #Residuals
+        resid_fit_data = fitted_model(self.wavelengths[mask])
+        resid = resid_fit_data - self.flux[mask]
+        plt.plot(self.wavelengths[mask], resid, color = "orange")
+        plt.axvline(6716 * (1+self.redshift), color = "darkblue")
+        plt.axvline(6731 * (1+self.redshift), color = "darkblue")
+        plt.axhline(0, color = "blue", ls = ":")
+        plt.xlabel(r"Lab-frame wavelength (\r{A})")
+        plt.ylabel(r"Residual ($10^{-20}$erg/s/$cm^{-2}$/\r{A})")
+        plt.savefig(residual_file)
+        plt.close()
+
     def monte_carlo(self, no_realisations = 1000):
         """Run a Monte Carlo on however many realisations of the masked spectrum"""
 

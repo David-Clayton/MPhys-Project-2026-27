@@ -2,10 +2,19 @@ import csv
 from pathlib import Path
 from sii_doublet_montecarlo_class import SIIMonteCarlo
 
+"""Windows filepaths"""
 # Create directories
-input_dir = Path(
-    r"C:\Users\drcla\OneDrive\MPhys Project\SII Fitting\spec1d_fluxcal_doublets_found"
-)
+#input_dir = Path(r"C:\Users\drcla\OneDrive\MPhys Project\SII Fitting\spec1d_fluxcal_doublets")
+
+"""Linux filepaths"""
+sii_fitting_dir = Path(__file__).resolve().parent
+#__file__ is a special Python variable containing the path of the currently running Python script. 
+#Parent means the directory above
+input_dir = sii_fitting_dir / "spec1d_fluxcal"
+plot_dir = sii_fitting_dir / "Plots"
+res_plot_dir = sii_fitting_dir / "Residuals"
+csv_dir = sii_fitting_dir
+
 #Empty lists
 flux_rows = []
 
