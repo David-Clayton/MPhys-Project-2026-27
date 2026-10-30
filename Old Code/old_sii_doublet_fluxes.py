@@ -9,12 +9,7 @@ from pathlib import Path
 class SIILineFitting:
 
     """
-    This class will calculate the flux of both lines of the [SII]6716,31 doublet along with errors. 
-    
-    It will read in the redshift and raw spectroscopic data from a target combined with a NIRSpec 
-    disperser (G140M, G235M, or G395M), and fit the data to a model with a Levenberg-Marquardt least-
-    squared fitting algorithm. The model in question is a pair of Gaussians to model the doublet and
-    a linear polynomial to model the continuum around the doublet.
+    This class fits the [SII] doublet to the JWST NIRSpec data. It will fit the 
     """
     @staticmethod
     def sii_mask(redshift, wavelengths):

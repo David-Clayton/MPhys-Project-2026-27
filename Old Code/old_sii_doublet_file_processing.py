@@ -1,6 +1,6 @@
 import csv
 from pathlib import Path
-from sii_doublet_fluxes import SIILineFitting
+from old_sii_doublet_fluxes import SIILineFitting
 
 """ These paths are for Windows, not Linux, I will keep these commented out for now"""
 # Create directories
