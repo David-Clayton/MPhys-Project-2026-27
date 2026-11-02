@@ -62,17 +62,6 @@ class SIILineFitting:
 
         self.valid = True
 
-        if not np.any(mask):
-            self.valid= False
-            return
-
-        no_data_points = np.count_nonzero(mask)
-        no_params = 8
-        if no_data_points <= no_params:
-            print(f"Not enough data points needed for good chi-squared fit")
-            self.valid = False
-            return
-        
         #Conditional for if spectrum is sufficiently within masked doublet range
         #Limits of my doublet mask
         upper_mask_limit = 6850 * (1 + self.redshift)
@@ -134,14 +123,14 @@ class SIILineFitting:
     def model_fit(self):
         """Use Astropy Lev-Mar Least Squares fitter to fit the model to the data"""
         if not self.valid:
-            return None
+            return 
     
         mask = self.sii_mask(self.redshift, self.wavelengths)
         fitter = fitting.LevMarLSQFitter(calc_uncertainties=True)
         #Initial guess of fit parameters
         initial_guess = self.spectrum_model(np.max(self.flux[mask]), np.max(self.flux[mask]), 5 * (1 + self.redshift), self.redshift, np.median(self.flux[mask]) , 0)
         #Fit model to masked data
-        fit_to_model = fitter(initial_guess, self.wavelengths[mask], self.flux[mask], weights=1 / self.flux_err[mask], maxiter=1000)
+        fit_to_model = fitter(initial_guess, self.wavelengths[mask], self.flux[mask], weights = 1 / self.flux_err[mask], maxiter=1000)
         #print(fit_to_model.parameters)
         """
         fit_to_model.parameters is as follows:
@@ -228,11 +217,11 @@ class SIILineFitting:
 
         return self.reduced_chi_squared <= criterion
 
-    def monte_carlo(self, no_realisations = 3):
+    def monte_carlo(self, no_realisations = 150):
         """Run a Monte Carlo on however many realisations of the masked spectrum"""
 
         if not self.valid:
-            return
+            return None
         
         mask = self.sii_mask(self.redshift, self.wavelengths)
         wavelengths = self.wavelengths[mask]
@@ -254,7 +243,7 @@ class SIILineFitting:
 
         #Check chi-squared of fit to see if we should go through with the Monte Carlo
         if not self.chi_squared_test(model_guess):
-            print(f"Fit is too poor for target {self.target_id} with disperser {self.disperser}. Skipping Monte Carlo.")
+            print(f"Chi-squared test failed for target {self.target_id} with disperser {self.disperser}.")
             self.valid = False
             return None
 
@@ -263,7 +252,7 @@ class SIILineFitting:
             realisation = np.random.normal(loc = flux, scale = flux_err)
 
             initial_guess = model_guess.copy()
-            fit_to_model = fitter(initial_guess, wavelengths, realisation, weights = 1 / flux_err, maxiter=1000)#
+            fit_to_model = fitter(initial_guess, wavelengths, realisation, weights = 1 / self.flux_err[mask], maxiter=100)
 
             amp6716, mean6716, sigma6716, amp6731, mean6731, sigma6731 = fit_to_model.parameters[2:]
 
