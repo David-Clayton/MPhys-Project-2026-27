@@ -42,7 +42,7 @@ for index, file_path in enumerate(sorted(input_dir.glob("spec1d_*.txt"))):
         if line_fitter.valid:
             plot_path = plot_dir / f"{file_path.stem}.png"
             residual_plot_path = res_plot_dir / f"{file_path.stem}.png"
-            #ine_fitter.plot_fit(str(plot_path), str(residual_plot_path))
+            line_fitter.plot_fit(str(plot_path), str(residual_plot_path))
         
         results = line_fitter.monte_carlo()
 

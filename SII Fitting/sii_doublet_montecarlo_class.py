@@ -217,7 +217,7 @@ class SIILineFitting:
 
         return self.reduced_chi_squared <= criterion
 
-    def monte_carlo(self, no_realisations = 150):
+    def monte_carlo(self, no_realisations = 500):
         """Run a Monte Carlo on however many realisations of the masked spectrum"""
 
         if not self.valid:
