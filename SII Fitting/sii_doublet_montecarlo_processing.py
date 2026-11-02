@@ -1,6 +1,6 @@
 import csv
 from pathlib import Path
-from sii_doublet_montecarlo_class import SIIMonteCarlo
+from sii_doublet_montecarlo_class import SIILineFitting
 
 """Windows filepaths"""
 # Create directories
@@ -36,9 +36,19 @@ flux_header = [
 files = sorted(input_dir.glob("spec1d_*.txt"))
 
 for index, file_path in enumerate(sorted(input_dir.glob("spec1d_*.txt"))):
-    line_fitter = SIIMonteCarlo(str(file_path))
+    line_fitter = SIILineFitting(str(file_path))
+
+    if line_fitter.valid:
+        plot_path = plot_dir / f"{file_path.stem}.png"
+        residual_plot_path = res_plot_dir / f"{file_path.stem}.png"
+        line_fitter.plot_fit(str(plot_path), str(residual_plot_path))
     
     results = line_fitter.monte_carlo()
+
+    if results is None:
+        print(f"Fit for {line_fitter.target_id}/{line_fitter.disperser} is too poor.")
+        print(f"File no. {index + 1} out of {len(files)} processed.")
+        continue
 
     flux_rows.append([
         line_fitter.target_id,

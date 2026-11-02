@@ -6,7 +6,7 @@ from scipy.optimize import least_squares
 import re
 from pathlib import Path
 
-class SIIMonteCarlo:
+class SIILineFitting:
 
     """
     This class will calculate the flux of both lines of the [SII]6716,31 doublet along with errors. 
@@ -41,7 +41,14 @@ class SIIMonteCarlo:
         
         self.target_id = int(match.group(1))
         self.disperser = match.group(2)
-        catalogue = Table.read(r"C:\Users\drcla\OneDrive\MPhys Project\SII Fitting\excels_cat_internal_v2_0p5asec_120424_miri.fits")
+
+        #Temporary Linux path
+        sii_fitting_dir = Path(__file__).resolve().parent
+        catalogue_path = sii_fitting_dir / "excels_cat_internal_v2_0p5asec_120424_miri.fits"
+        catalogue = Table.read(catalogue_path)
+
+        #Windows path
+        #catalogue = Table.read(r"C:\Users\drcla\OneDrive\MPhys Project\SII Fitting\excels_cat_internal_v2_0p5asec_120424_miri.fits")
         self.redshift = catalogue[catalogue["targetid"] == self.target_id]["z_excels_v1"][0]
 
         flux_data = np.loadtxt(file)
@@ -54,6 +61,18 @@ class SIIMonteCarlo:
         mask = self.sii_mask(self.redshift, self.wavelengths)
 
         self.valid = True
+
+        if not np.any(mask):
+            self.valid= False
+            return
+
+        no_data_points = np.count_nonzero(mask)
+        no_params = 8
+        if no_data_points <= no_params:
+            print(f"Not enough data points needed for good chi-squared fit")
+            self.valid = False
+            return
+        
         #Conditional for if spectrum is sufficiently within masked doublet range
         #Limits of my doublet mask
         upper_mask_limit = 6850 * (1 + self.redshift)
@@ -115,7 +134,7 @@ class SIIMonteCarlo:
     def model_fit(self):
         """Use Astropy Lev-Mar Least Squares fitter to fit the model to the data"""
         if not self.valid:
-            return
+            return None
     
         mask = self.sii_mask(self.redshift, self.wavelengths)
         fitter = fitting.LevMarLSQFitter(calc_uncertainties=True)
@@ -152,7 +171,13 @@ class SIIMonteCarlo:
                         self.flux[mask] + self.flux_err[mask], alpha=0.5, color = "limegreen") 
         
         #Plot fitted data
-        fitted_model = self.model_fit()[0]
+        fit_results = self.model_fit()
+
+        if fit_results is None:
+            return
+
+        fitted_model = fit_results[0]
+
         #Expand wavelength data for less janky curve
         x_data = np.linspace(np.min(self.wavelengths[mask]), np.max(self.wavelengths[mask]), 1000)   
         fitted_data = fitted_model(x_data)
@@ -178,9 +203,37 @@ class SIIMonteCarlo:
         plt.savefig(residual_file)
         plt.close()
 
-    def monte_carlo(self, no_realisations = 1000):
+    def chi_squared_test(self, fit_to_model, criterion = 2.0): 
+        """Test the goodness of fit of the model to the data using a chi-squared test"""
+
+        mask = self.sii_mask(self.redshift, self.wavelengths)
+
+        observed_flux = self.flux[mask]
+        fitted_flux = fit_to_model(self.wavelengths[mask])
+        flux_err = self.flux_err[mask]
+
+        residuals = (observed_flux - fitted_flux) / flux_err
+        chi_squared = np.sum(residuals**2)
+
+        number_of_data_points = np.count_nonzero(mask)
+        number_of_parameters = len(fit_to_model.parameters)
+        degrees_of_freedom = number_of_data_points - number_of_parameters
+
+        if degrees_of_freedom <= 0:
+            raise ValueError(
+                "Cannot calculate reduced chi-squared with no degrees of freedom"
+            )
+
+        self.reduced_chi_squared = chi_squared / degrees_of_freedom
+
+        return self.reduced_chi_squared <= criterion
+
+    def monte_carlo(self, no_realisations = 3):
         """Run a Monte Carlo on however many realisations of the masked spectrum"""
 
+        if not self.valid:
+            return
+        
         mask = self.sii_mask(self.redshift, self.wavelengths)
         wavelengths = self.wavelengths[mask]
         flux = self.flux[mask]
@@ -192,7 +245,18 @@ class SIIMonteCarlo:
         redshift6731_gauss_dist = np.zeros(no_realisations)
 
         #Initial guess of model for all N realisations
-        model_guess, fitter = self.model_fit()
+        fit_results = self.model_fit()
+
+        if fit_results is None:
+            return None
+        
+        model_guess, fitter = fit_results
+
+        #Check chi-squared of fit to see if we should go through with the Monte Carlo
+        if not self.chi_squared_test(model_guess):
+            print(f"Fit is too poor for target {self.target_id} with disperser {self.disperser}. Skipping Monte Carlo.")
+            self.valid = False
+            return None
 
         #Run MC
         for i in range(no_realisations):
