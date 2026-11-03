@@ -1,6 +1,9 @@
 import csv
 from pathlib import Path
 from sii_doublet_montecarlo_class import SIILineFitting
+from time import time
+
+time_0 = time()
 
 """Windows filepaths"""
 # Create directories
@@ -26,12 +29,9 @@ flux_header = [
     "flux6716_err",
     "flux6731",
     "flux6731_err",
-    "redshift6716",
-    "redshift6716_err",
-    "redshift6731",
-    "redshift6731_err",
-    "(z31-z16)/z16_err",
-    "(z31-z16)/z31_err",
+    "redshift",
+    "redshift_err",
+    
 ]
 files = sorted(input_dir.glob("spec1d_*.txt"))
 
@@ -65,3 +65,6 @@ with open("sii_fluxes_mc.csv", "w", newline="") as file:
     writer = csv.writer(file)
     writer.writerow(flux_header)
     writer.writerows(flux_rows)
+
+time_1 = time()
+print(f"Processing completed in {time_1 - time_0:.2f} seconds")

@@ -114,10 +114,13 @@ class SIILineFitting:
         continuum = models.Polynomial1D(1, c0 = cont_const, c1 = cont_lin)
         sii6716 = models.Gaussian1D(amplitude = amp6716, mean = 6716 * (1 + redshift), stddev = sigma)
         sii6731 = models.Gaussian1D(amplitude = amp6731, mean = 6731 * (1 + redshift), stddev = sigma) 
-        #Fix peaks in place in order to fix redshifts
-        #sii6716.mean.fixed = True
-        #sii6731.mean.fixed = True
         model = continuum + sii6716 + sii6731
+
+        #Tie linewidths together - they should physically be equal
+        model.stddev_2.tied = lambda m: m.stddev_1
+        #Tie redshifts together - ditto
+        model.mean_2.tied = lambda m: m.mean_1 * (6731 / 6716)
+
         return model
 
     def model_fit(self):
@@ -192,8 +195,8 @@ class SIILineFitting:
         plt.savefig(residual_file)
         plt.close()
 
-    def chi_squared_test(self, fit_to_model, criterion = 2.0): 
-        """Test the goodness of fit of the model to the data using a chi-squared test"""
+    def chi_squared_test(self, fit_to_model): 
+        """Test the goodness of fit of the model to the data using a chi-squared test. Reject if the reduced chi-squared is not within the set tolerance value of 1.0"""
 
         mask = self.sii_mask(self.redshift, self.wavelengths)
 
@@ -204,19 +207,14 @@ class SIILineFitting:
         residuals = (observed_flux - fitted_flux) / flux_err
         chi_squared = np.sum(residuals**2)
 
-        number_of_data_points = np.count_nonzero(mask)
-        number_of_parameters = len(fit_to_model.parameters)
-        degrees_of_freedom = number_of_data_points - number_of_parameters
+        number_of_data_points = len(observed_flux)
+        number_of_free_parameters = number_of_free_parameters = sum(not (getattr(fit_to_model, name).tied)
+        for name in fit_to_model.param_names)
+        degrees_of_freedom = number_of_data_points - number_of_free_parameters
 
-        if degrees_of_freedom <= 0:
-            raise ValueError(
-                "Cannot calculate reduced chi-squared with no degrees of freedom"
-            )
+        reduced_chi_squared = chi_squared / degrees_of_freedom
 
-        self.reduced_chi_squared = chi_squared / degrees_of_freedom
-
-        return self.reduced_chi_squared <= criterion
-
+        return reduced_chi_squared 
     def monte_carlo(self, no_realisations = 500):
         """Run a Monte Carlo on however many realisations of the masked spectrum"""
 
@@ -230,8 +228,8 @@ class SIILineFitting:
 
         flux6716_gauss_dist = np.zeros(no_realisations)
         flux6731_gauss_dist = np.zeros(no_realisations)
-        redshift6716_gauss_dist = np.zeros(no_realisations)
-        redshift6731_gauss_dist = np.zeros(no_realisations)
+        redshift_gauss_dist = np.zeros(no_realisations)
+    
 
         #Initial guess of model for all N realisations
         fit_results = self.model_fit()
@@ -240,9 +238,15 @@ class SIILineFitting:
             return None
         
         model_guess, fitter = fit_results
+        #Check if tying worked
+        #print(model_guess.stddev_1.value, model_guess.stddev_2.value)
+        #print(model_guess.mean_1.value, (6716/6731) * model_guess.mean_2.value)
 
         #Check chi-squared of fit to see if we should go through with the Monte Carlo
-        if not self.chi_squared_test(model_guess):
+        reduced_chi_squared = self.chi_squared_test(model_guess)
+        print(f"Reduced chi-squared for target {self.target_id} with disperser {self.disperser} ={reduced_chi_squared}" )
+
+        if reduced_chi_squared > 2.0:
             print(f"Chi-squared test failed for target {self.target_id} with disperser {self.disperser}.")
             self.valid = False
             return None
@@ -261,8 +265,7 @@ class SIILineFitting:
             flux6716_gauss_dist[i] = amp6716 * sigma6716 * np.sqrt(2 * np.pi)
             flux6731_gauss_dist[i] = amp6731 * sigma6731 * np.sqrt(2 * np.pi)
 
-            redshift6716_gauss_dist[i] = mean6716 / 6716 - 1
-            redshift6731_gauss_dist[i] = mean6731 / 6731 - 1
+            redshift_gauss_dist[i] = mean6716 / 6716 - 1
 
 
         #Take medians and errors from distributions
@@ -280,24 +283,15 @@ class SIILineFitting:
         flux6731 = np.nanmedian(flux6731_gauss_dist)
         flux6731_error = (flux6731_error_upper + flux6731_error_lower) / 2
 
-        redshift6716_median = np.nanmedian(redshift6716_gauss_dist)
-        redshift6716_error_upper = np.nanpercentile(redshift6716_gauss_dist, 84) - redshift6716_median
-        redshift6716_error_lower = redshift6716_median - np.nanpercentile(redshift6716_gauss_dist, 16)
+        redshift_median = np.nanmedian(redshift_gauss_dist)
+        redshift_error_upper = np.nanpercentile(redshift_gauss_dist, 84) - redshift_median
+        redshift_error_lower = redshift_median - np.nanpercentile(redshift_gauss_dist, 16)
         
-        redshift6716 = np.nanmedian(redshift6716_gauss_dist)
-        redshift6716_error = (redshift6716_error_upper + redshift6716_error_lower) / 2
-        
-        redshift6731_median = np.nanmedian(redshift6731_gauss_dist)
-        redshift6731_error_upper = np.nanpercentile(redshift6731_gauss_dist, 84) - redshift6731_median
-        redshift6731_error_lower = redshift6731_median - np.nanpercentile(redshift6731_gauss_dist, 16)
-                
-        redshift6731 = np.nanmedian(redshift6731_gauss_dist)
-        redshift6731_error = (redshift6731_error_upper + redshift6731_error_lower) / 2
+        redshift = np.nanmedian(redshift_gauss_dist)
+        redshift_error = (redshift_error_upper + redshift_error_lower) / 2
 
         return (flux6716, flux6716_error, flux6731, flux6731_error,
-                redshift6716, redshift6716_error, redshift6731, redshift6731_error,
-                (redshift6731 - redshift6716)/redshift6716_error,
-                (redshift6731 - redshift6716)/redshift6731_error)
+                redshift, redshift_error)
 
 
 
