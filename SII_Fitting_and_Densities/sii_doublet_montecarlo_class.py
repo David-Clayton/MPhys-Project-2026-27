@@ -285,11 +285,12 @@ class SIILineFittingandDensities:
             redshift_gauss_dist[i] = mean6716 / 6716 - 1
 
             #Maximum density limit 
+
             if flux6716_gauss_dist[i]/flux6731_gauss_dist[i] < 0.45:
-                n_e_gauss_dist[i] = 7000 #Davies 2021
+                n_e_gauss_dist[i] = 5000 #Davies 2021
 
             elif flux6716_gauss_dist[i]/flux6731_gauss_dist[i] > 1.45:
-                n_e_gauss_dist[i] = 100 #cm^-3
+                n_e_gauss_dist[i] = 10 #cm^-3
 
             else:
                 n_e_gauss_dist[i] = self.compute_density(flux6716_gauss_dist[i], flux6731_gauss_dist[i])
