@@ -180,8 +180,8 @@ class SIILineFittingandDensities:
         plt.plot(x_data, fitted_data, color = "mediumpurple")
         #plt.axvline(6716 * (1+self.redshift), color = "darkblue")
         #plt.axvline(6731 * (1+self.redshift), color = "darkblue")
-        plt.xlabel(r"Lab-frame wavelength (\r{A})")
-        plt.ylabel(r"Flux ($10^{-20}$erg/s/$cm^{-2}$/\r{A})")
+        plt.xlabel(r"Lab-frame wavelength ($\AA$)")
+        plt.ylabel(r"Flux ($10^{-20}$erg/s/$cm^{-2}$/$\AA$)")
         plt.title(f"Target {self.target_id} \n with disperser {self.disperser}. z = {self.redshift}")
         plt.savefig(output_file)
         plt.close()
@@ -193,8 +193,8 @@ class SIILineFittingandDensities:
         plt.axvline(6716 * (1+self.redshift), color = "darkblue")
         plt.axvline(6731 * (1+self.redshift), color = "darkblue")
         plt.axhline(0, color = "blue", ls = ":")
-        plt.xlabel(r"Lab-frame wavelength (\r{A})")
-        plt.ylabel(r"Residual ($10^{-20}$erg/s/$cm^{-2}$/\r{A})")
+        plt.xlabel(r"Lab-frame wavelength ($\AA$)")
+        plt.ylabel(r"Residual ($10^{-20}$erg/s/$cm^{-2}$/$\AA$)")
         plt.savefig(residual_file)
         plt.close()
 
@@ -230,7 +230,7 @@ class SIILineFittingandDensities:
 
         return n_e
 
-    def monte_carlo(self, no_realisations = 100): #CHange THISD 
+    def monte_carlo(self, no_realisations = 500):
         """Run a Monte Carlo on however many realisations of the masked spectrum"""
 
         if not self.valid:
@@ -286,10 +286,10 @@ class SIILineFittingandDensities:
 
             #Maximum density limit 
             if flux6716_gauss_dist[i]/flux6731_gauss_dist[i] < 0.45:
-                n_e_gauss_dist[i] = 5000 #Davies 2021
+                n_e_gauss_dist[i] = 7000 #Davies 2021
 
             elif flux6716_gauss_dist[i]/flux6731_gauss_dist[i] > 1.45:
-                n_e_gauss_dist[i] = 40 #cm^-3
+                n_e_gauss_dist[i] = 100 #cm^-3
 
             else:
                 n_e_gauss_dist[i] = self.compute_density(flux6716_gauss_dist[i], flux6731_gauss_dist[i])
