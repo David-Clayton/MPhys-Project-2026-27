@@ -1,6 +1,6 @@
 import csv
 from pathlib import Path
-from sii_doublet_montecarlo_class import SIILineFitting
+from sii_doublet_montecarlo_class import SIILineFittingandDensities
 from time import time
 
 time_0 = time()
@@ -31,13 +31,16 @@ flux_header = [
     "flux6731_err",
     "redshift",
     "redshift_err",
+    "n_e",
+    "n_e_err_upper",
+    "n_e_err_lower",
     
 ]
 files = sorted(input_dir.glob("spec1d_*.txt"))
 
 for index, file_path in enumerate(sorted(input_dir.glob("spec1d_*.txt"))):
     try:
-        line_fitter = SIILineFitting(str(file_path))
+        line_fitter = SIILineFittingandDensities(str(file_path))
 
         if line_fitter.valid:
             plot_path = plot_dir / f"{file_path.stem}.png"

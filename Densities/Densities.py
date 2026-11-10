@@ -31,7 +31,7 @@ snr6731 = flux6731 / flux6731_err
 
 valid = (flux6716 > 1e-20) & (flux6731 > 1e-20) & (flux6716_err > 1e-20) & (flux6731_err > 1e-20) & ((snr6716 > 3) | (snr6731 > 3)) & (redshift_err < 700)
 
-targetid = targetid[valid]
+targetid = targetid[valid] 
 
 flux6716 = flux6716[valid]
 flux6716_err = flux6716_err[valid]

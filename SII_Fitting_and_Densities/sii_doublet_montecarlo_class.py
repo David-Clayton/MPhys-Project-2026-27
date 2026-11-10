@@ -1,15 +1,17 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from astropy.table import Table, join
+from astropy.table import Table 
 from astropy.modeling import models,fitting
-from scipy.optimize import least_squares
 import re
 from pathlib import Path
+import pyneb as pn
+import pandas as pd
 
-class SIILineFitting:
+class SIILineFittingandDensities:
 
     """
-    This class will calculate the flux of both lines of the [SII]6716,31 doublet along with errors. 
+    This class will calculate the densities of the targets from the 
+    flux of both lines of the [SII]6716,31 doublet along with errors. 
     
     It will read in the redshift and raw spectroscopic data from a target combined with a NIRSpec 
     disperser (G140M, G235M, or G395M), and fit the data to a model with a Levenberg-Marquardt least-
@@ -19,8 +21,9 @@ class SIILineFitting:
     This class will use a Monte-Carlo to derive errors on the best estimates on the 
     fluxes and redshifts, with ~100-1000 realisations of each spectrum based on the EXCELS data.
 
-    NB: This class should only be used on datafiles where the [SII] doublet has already been found
-    and adequately fitted.
+    It will then use the [SII]6716,31 fluxes to calculate the electron density of the target using PyNeb's 
+    S2.getTemDen() functionality.
+
     """
 
     @staticmethod
@@ -215,7 +218,19 @@ class SIILineFitting:
         reduced_chi_squared = chi_squared / degrees_of_freedom
 
         return reduced_chi_squared 
-    def monte_carlo(self, no_realisations = 500):
+
+    def compute_density(self, flux6716, flux6731, T_e = 15000):
+        """Calculate the electron density from the computed fluxes"""
+
+        emission_line_ratio = flux6716 / flux6731
+        #Atomic class
+        S2 = pn.Atom('S', 2)
+
+        n_e = S2.getTemDen(emission_line_ratio, tem = T_e, wave1 = 6716, wave2 = 6731)
+
+        return n_e
+
+    def monte_carlo(self, no_realisations = 100): #CHange THISD 
         """Run a Monte Carlo on however many realisations of the masked spectrum"""
 
         if not self.valid:
@@ -229,6 +244,8 @@ class SIILineFitting:
         flux6716_gauss_dist = np.zeros(no_realisations)
         flux6731_gauss_dist = np.zeros(no_realisations)
         redshift_gauss_dist = np.zeros(no_realisations)
+
+        n_e_gauss_dist = np.zeros(no_realisations)
     
 
         #Initial guess of model for all N realisations
@@ -267,6 +284,16 @@ class SIILineFitting:
 
             redshift_gauss_dist[i] = mean6716 / 6716 - 1
 
+            #Maximum density limit 
+            if flux6716_gauss_dist[i]/flux6731_gauss_dist[i] < 0.45:
+                n_e_gauss_dist[i] = 5000 #Davies 2021
+
+            elif flux6716_gauss_dist[i]/flux6731_gauss_dist[i] > 1.45:
+                n_e_gauss_dist[i] = 40 #cm^-3
+
+            else:
+                n_e_gauss_dist[i] = self.compute_density(flux6716_gauss_dist[i], flux6731_gauss_dist[i])
+
 
         #Take medians and errors from distributions
         flux6716_median = np.nanmedian(flux6716_gauss_dist)
@@ -290,8 +317,16 @@ class SIILineFitting:
         redshift = np.nanmedian(redshift_gauss_dist)
         redshift_error = (redshift_error_upper + redshift_error_lower) / 2
 
+        n_e_median = np.nanmedian(n_e_gauss_dist)
+        n_e_error_upper = np.nanpercentile(n_e_gauss_dist, 84) - n_e_median
+        n_e_error_lower = n_e_median - np.nanpercentile(n_e_gauss_dist, 16)
+
+        n_e = n_e_median
+
+        print(f"Density = {n_e} + {n_e_error_upper} -{n_e_error_lower} cm^-3")
+
         return (flux6716, flux6716_error, flux6731, flux6731_error,
-                redshift, redshift_error)
+                redshift, redshift_error, n_e, n_e_error_upper, n_e_error_lower)
 
 
 
