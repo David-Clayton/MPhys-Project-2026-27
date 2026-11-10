@@ -2,15 +2,20 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 from astropy.table import Table
+from pathlib import Path
 
 """Plots a histogram of the difference between the EXCELS calculated redshift
-and my own redshifts calculated from the 6716 and 6731A lines"""
+and my own redshift"""
 
-catalogue = Table.read(r"C:\Users\drcla\OneDrive\MPhys Project\SII Fitting\excels_cat_internal_v2_0p5asec_120424_miri.fits")
+dir = Path(__file__).resolve().parent
+catalogue_path = dir / "excels_cat_internal_v2_0p5asec_120424_miri.fits"
+catalogue = Table.read(catalogue_path)
+
+#catalogue = Table.read(r"C:\Users\drcla\OneDrive\MPhys Project\SII Fitting\excels_cat_internal_v2_0p5asec_120424_miri.fits")
 redshift_excels = np.asarray(catalogue["z_excels_v1"])
 
 #Homegrown redshifts
-sii_fluxes_filepath = r"C:\Users\drcla\OneDrive\MPhys Project\SII Fitting\sii_fluxes.csv"
+sii_fluxes_filepath = dir / "sii_fluxes.csv"
 
 # Convert the FITS table to a pandas DataFrame
 catalogue_df = catalogue.to_pandas()
@@ -26,21 +31,19 @@ comparison = sii_df.merge(
     how="inner",
 )
 # Calculate matched redshift differences
-difference_6716 = (comparison["z_excels_v1"] - comparison["redshift6716"])
-difference_6731 = (comparison["z_excels_v1"] - comparison["redshift6731"])
+difference_z = (comparison["z_excels_v1"] - comparison["redshift"])
 
 # Remove invalid values
-difference_6716 = difference_6716[np.isfinite(difference_6716)]
-difference_6731 = difference_6731[np.isfinite(difference_6731)]
+difference_z = difference_z[np.isfinite(difference_z)]
+
+mask = (abs(difference_z) < 0.02)  # Adjust the threshold as needed
+difference_z = difference_z[mask]
 
 #Plot
 
-fig, (ax1, ax2) = plt.subplots(1, 2)
-ax1.hist((difference_6716), bins = 10)
-ax1.set_xlabel(r"$z_{EXCELS}$ - $z_{6716}$") 
-
-ax2.hist(difference_6731, bins = 10)
-ax2.set_xlabel(r"$z_{EXCELS}$ - $z_{6731}$") 
+fig, ax = plt.subplots()
+ax.hist((difference_z), bins = 100)
+ax.set_xlabel(r"$z_{EXCELS}$ - $z_{Mine}$") 
 
 plt.savefig("redshift_histogram.png")
 plt.show()

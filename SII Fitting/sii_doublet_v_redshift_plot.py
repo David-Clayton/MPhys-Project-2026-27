@@ -28,7 +28,7 @@ print(f"{len(redshift)} initial spectra passing chisq")
 snr6716 = flux6716 / flux6716_err
 snr6731 = flux6731 / flux6731_err
 
-valid = (flux6716 > 1e-20) & (flux6731 > 1e-20) & (flux6716_err > 1e-20) & (flux6731_err > 1e-20) & ((snr6716 > 3) | (snr6731 > 3)) & (redshift_err < 700)
+valid = (flux6716 > 1e-20) & (flux6731 > 1e-20) & (flux6716_err > 1e-20) & (flux6731_err > 1e-20) & ((snr6716 > 3) | (snr6731 > 3))
 
 targetid = targetid[valid]
 
@@ -52,16 +52,16 @@ emission_line_ratio = flux6716 / flux6731
 #Propagate errors
 emission_line_ratio_error = emission_line_ratio * np.sqrt((flux6716_err/flux6716)**2 + (flux6731_err/flux6731)**2)
 
-plt.scatter(redshift, emission_line_ratio, s = 20, c = "blue")
+plt.scatter(redshift, emission_line_ratio, s = 20, c = "purple", alpha = 0.5)
 plt.errorbar(redshift, emission_line_ratio, yerr = emission_line_ratio_error,
-             xerr = redshift_err, ecolor = "blue", color = "blue", fmt = "none")
+             xerr = redshift_err, ecolor = "purple", color = "purple", fmt = "none")
 plt.xlabel(r"$z$")
 plt.ylabel(r"[SII]$\lambda$6716/$\lambda$6731")
 #plt.title(f"Restricted SNR test")
 plt.axhline(1.45, color = "orange", linestyle = "--", label = "theor. upper limit")
 plt.axhline(0.44, color = "red", linestyle = "--", label = "theor. lower limit")
 plt.legend()
-plot_dir = sii_fitting_dir / "doublet_ratio_v_redshift_ii.png"
+plot_dir = sii_fitting_dir / "doublet_ratio_v_redshift.png"
 plt.savefig(plot_dir)
 plt.show()
 

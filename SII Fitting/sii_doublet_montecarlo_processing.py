@@ -61,7 +61,7 @@ for index, file_path in enumerate(sorted(input_dir.glob("spec1d_*.txt"))):
 
     print(f"File no. {index + 1} out of {len(files)} processed.")
 
-with open("sii_fluxes_mc.csv", "w", newline="") as file:
+with open("sii_fluxes.csv", "w", newline="") as file:
     writer = csv.writer(file)
     writer.writerow(flux_header)
     writer.writerows(flux_rows)
