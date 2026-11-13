@@ -287,7 +287,7 @@ class SIILineFittingandDensities:
             #Maximum density limit 
 
             if flux6716_gauss_dist[i]/flux6731_gauss_dist[i] < 0.45:
-                n_e_gauss_dist[i] = 5000 #Topping 2025
+                n_e_gauss_dist[i] = 2000 #Topping 2025
 
             elif flux6716_gauss_dist[i]/flux6731_gauss_dist[i] > 1.45:
                 n_e_gauss_dist[i] = 10 #cm^-3
