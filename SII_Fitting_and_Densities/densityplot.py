@@ -33,7 +33,7 @@ print(f"{len(redshift)} initial spectra passing chisq")
 snr6716 = flux6716 / flux6716_err
 snr6731 = flux6731 / flux6731_err
 
-valid = (flux6716 > 1e-20) & (flux6731 > 1e-20) & (flux6716_err > 1e-20) & (flux6731_err > 1e-20) & ((snr6716 > 3) | (snr6731 > 3))
+valid = (flux6716 > 1e-20) & (flux6731 > 1e-20) & (flux6716_err > 1e-20) & (flux6731_err > 1e-20) & ((snr6716 > 5) | (snr6731 > 5))
 
 targetid = targetid[valid] 
 
@@ -52,13 +52,15 @@ n_e_err_lower = n_e_err_lower[valid]
 #Check length after SNR cut
 print(f"{len(redshift)} spectra passing SNR cut")
 
+T_e = 15000 #K
+
 plt.scatter(redshift, n_e, s = 10, c = 'green', alpha = 0.5)
 plt.errorbar(redshift, n_e, xerr = redshift_err, yerr = [n_e_err_lower, n_e_err_upper], fmt = 'none', ecolor = 'green', alpha = 0.5)
 plt.xlabel(r"$z$")
 plt.ylabel(r"$n_e$ (cm$^{-3}$)")
 plt.yscale("log")
-plt.title(rf"$T_e$ = 15000 K (Topping/PyNeb limits)")
-plt.savefig(densities_dir / f"n_e_vs_z_Te_15000.png", dpi = 300)
+plt.title(rf"$T_e$ = {T_e} K (Topping/PyNeb limits, Topping SNR>5)")
+plt.savefig(densities_dir / f"n_e_vs_z_Te_{T_e}.png", dpi = 300)
 plt.show()
 
 #Save density data to CSV

@@ -28,7 +28,7 @@ print(f"{len(redshift)} initial spectra passing chisq")
 snr6716 = flux6716 / flux6716_err
 snr6731 = flux6731 / flux6731_err
 
-valid = (flux6716 > 1e-20) & (flux6731 > 1e-20) & (flux6716_err > 1e-20) & (flux6731_err > 1e-20) & ((snr6716 > 3) | (snr6731 > 3))
+valid = (flux6716 > 1e-20) & (flux6731 > 1e-20) & (flux6716_err > 1e-20) & (flux6731_err > 1e-20) & ((snr6716 > 5) | (snr6731 > 5))
 
 targetid = targetid[valid]
 
