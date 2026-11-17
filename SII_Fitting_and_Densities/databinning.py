@@ -2,19 +2,16 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 import matplotlib.pyplot as plt
-from scipy.optimize import curve_fit
+from scipy.optimize import least_squares
 
 dir = Path(__file__).resolve().parent
 data = pd.read_csv(dir / "n_e_data_Te_15000.csv")
 
 no_bins = 4
 labels = [f"bin {i + 1}" for i in range(no_bins)]
-data["z_bin"] = pd.cut(data["redshift"], bins = no_bins, labels = labels)
+data["z_bin"] = pd.qcut(data["redshift"], q = no_bins, labels = labels)
 
-for label, subset in data.groupby("z_bin", observed=True):
-    print(label, len(subset))
-
-rng = np.random.default_rng(42)
+rng = np.random.default_rng(1000)
 
 def bootstrap_median(group, column, n_boot=10_000):
     values = group[column].to_numpy(dtype=float)
@@ -62,12 +59,16 @@ n_e_median = summary["n_e_median"].to_numpy()
 n_e_error_lower = summary["n_e_ci16"].to_numpy()
 n_e_error_upper = summary["n_e_ci84"].to_numpy()
 
-#Fit a power laws to the medians
-def power_law(z, a, p):
-    n_e = a * (1 + z) ** p
-    return n_e
+def power_law(params, z, n_e_obs):
+    a, p = params
+    residual = a * (1 + z) ** p - n_e_obs
+    return residual
 
+x_0_powerlaw = np.array([10, 1.5])
+solutions = least_squares(power_law, x_0_powerlaw, args = (z_median, n_e_median))
+a, p = solutions.x
 
+print(f"Powerlaw index is {p:.3f}")
 
 colors = plt.cm.viridis(np.linspace(0, 1, no_bins))
 color_by_bin = dict(zip(labels, colors))
