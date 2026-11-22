@@ -34,7 +34,7 @@ def bootstrap_median(group, column, n_boot=10_000):
 
     boot_medians = np.median(perturbed, axis=1)
     low, high = np.percentile(boot_medians, [16, 84])
-    return np.median(values), low, high
+    return np.median(boot_medians), low, high
 
 results = []
 
@@ -91,7 +91,7 @@ plt.xlabel(r"$z$")
 plt.ylabel(r"$n_e$ (cm$^{-3}$)")
 plt.yscale("log")
 plt.axhline(10, color = "darkred", label = "")
-plt.title(r"$T_e = 15000 K$ (Topping/PyNeb limits, Topping $SNR>5$)")
+plt.title(r"$T_e = 15000 K$ (Topping/PyNeb limits, Topping $SNR>3$)")
 plt.savefig(dir / "n_e_vs_z_Te_15000_binned.png", dpi=300)
 plt.show()
 
