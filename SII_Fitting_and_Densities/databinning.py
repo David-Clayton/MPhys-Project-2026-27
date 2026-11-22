@@ -2,19 +2,21 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 import matplotlib.pyplot as plt
-from scipy.optimize import least_squares
+
+plt.rcParams["text.usetex"] = True
 
 dir = Path(__file__).resolve().parent
 data = pd.read_csv(dir / "n_e_data_Te_15000.csv")
 
 no_bins = 4
 labels = [f"bin {i + 1}" for i in range(no_bins)]
-data["z_bin"] = pd.qcut(data["redshift"], q = no_bins, labels = labels)
+data["z_bin"] = pd.qcut(data["redshift"], q = no_bins, labels = labels) #Create new 7th column in data,
+#It returns one label per row, either "bin 1", "bin 2", "bin 3", or "bin 4".
 
-rng = np.random.default_rng(1000)
+rng = np.random.default_rng(1000) #Random number generator
 
 def bootstrap_median(group, column, n_boot=10_000):
-    values = group[column].to_numpy(dtype=float)
+    values = group[column].to_numpy(dtype=float) #Group is array, column is index
 
     if column == "redshift":
         err_low = err_high = group["redshift_err"].to_numpy(dtype=float)
@@ -59,55 +61,37 @@ n_e_median = summary["n_e_median"].to_numpy()
 n_e_error_lower = summary["n_e_ci16"].to_numpy()
 n_e_error_upper = summary["n_e_ci84"].to_numpy()
 
-def power_law(params, z, n_e_obs):
-    a, p = params
-    residual = a * (1 + z) ** p - n_e_obs
-    return residual
+#Unique colours for each bin
+colours = plt.cm.viridis(np.linspace(0, 1, no_bins))
+colour_by_bin = dict(zip(labels, colours))
 
-x_0_powerlaw = np.array([10, 1.5])
-solutions = least_squares(power_law, x_0_powerlaw, args = (z_median, n_e_median))
-a, p = solutions.x
+#Unique markers for each bin
+markers = ["o", "^", "s", "p"] 
+markers_by_bin = dict(zip(labels, markers))
 
-print(f"Powerlaw index is {p:.3f}")
-
-colors = plt.cm.viridis(np.linspace(0, 1, no_bins))
-color_by_bin = dict(zip(labels, colors))
-
+#Plotting unbinned data in background
 for z_bin, group in data.groupby("z_bin", observed=True):
-    color = color_by_bin[str(z_bin)]
-    plt.scatter(group["redshift"], group["n_e"], color=color, alpha=0.35, s=20)
-    plt.errorbar(
-        group["redshift"],
-        group["n_e"],
-        xerr=group["redshift_err"],
-        yerr=[group["n_e_err_lower"], group["n_e_err_upper"]],
-        fmt="none",
-        ecolor=color,
-        alpha=0.35,
-    )
+    colour = colour_by_bin[str(z_bin)]
+    marker = markers_by_bin[str(z_bin)]
+    plt.scatter(group["redshift"], group["n_e"], color=colour, marker = marker, s=20, alpha = 0.5,
+                edgecolors = "black", zorder = 2)
+    plt.errorbar(group["redshift"], group["n_e"], xerr=group["redshift_err"], 
+                 yerr=[group["n_e_err_lower"], group["n_e_err_upper"]], fmt="none", ecolor=colour, 
+                 capsize = 4, alpha = 0.5, elinewidth = 1, zorder = 1, capthick = 1)
 
+#Plotting medians of binned data
 for z_bin, row in summary.iterrows():
-    plt.scatter(
-        row["z_median"],
-        row["n_e_median"],
-        color=color_by_bin[str(z_bin)],
-        s=50,
-        marker="D",
-    )
-    plt.errorbar(
-        row["z_median"],
-        row["n_e_median"],
-        xerr=[[row["z_median"] - row["z_ci16"]], [row["z_ci84"] - row["z_median"]]],
-        yerr=[[row["n_e_median"] - row["n_e_ci16"]], [row["n_e_ci84"] - row["n_e_median"]]],
-        fmt="none",
-        ecolor=color_by_bin[str(z_bin)],
-        capsize=5,
-    )
+    plt.scatter(row["z_median"], row["n_e_median"], color=colour_by_bin[str(z_bin)], s=100, marker = markers_by_bin[str(z_bin)],
+                edgecolors = "black", zorder = 2)
+    plt.errorbar(row["z_median"], row["n_e_median"], xerr=[[row["z_median"] - row["z_ci16"]], [row["z_ci84"] - row["z_median"]]],
+        yerr=[[row["n_e_median"] - row["n_e_ci16"]], [row["n_e_ci84"] - row["n_e_median"]]], fmt="none",
+        ecolor=colour_by_bin[str(z_bin)], capsize = 7, elinewidth = 2, zorder = 1, capthick = 2)
 
 plt.xlabel(r"$z$")
 plt.ylabel(r"$n_e$ (cm$^{-3}$)")
 plt.yscale("log")
-plt.title(rf"$T_e$ = 15000 K (Topping/PyNeb limits, Topping SNR>5)")
+plt.axhline(10, color = "darkred", label = "")
+plt.title(r"$T_e = 15000 K$ (Topping/PyNeb limits, Topping $SNR>5$)")
 plt.savefig(dir / "n_e_vs_z_Te_15000_binned.png", dpi=300)
 plt.show()
 
