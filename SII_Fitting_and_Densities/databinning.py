@@ -95,4 +95,7 @@ plt.title(r"$T_e = 15000 K$ (Topping/PyNeb limits, Topping $SNR>3$)")
 plt.savefig(dir / "n_e_vs_z_Te_15000_binned.png", dpi=300)
 plt.show()
 
+#Save binned medians to CSV
+summary.insert(0, "Literature", "This work")
+summary.to_csv(dir / "n_e_vs_z_T_e_15000_binned_data.csv")
 
