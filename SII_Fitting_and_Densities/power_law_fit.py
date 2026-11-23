@@ -108,7 +108,60 @@ def main(data):
     return sampler, pos, prob, state
 
 data = (n_e_data, z, n_e_data_err_upper, n_e_data_err_lower)
-main(data)
+sampler, _, _, _ = main(data)
 
 #Plot all data
+dataframe["Literature"] = dataframe["Literature"].str.strip()
 
+own = dataframe[dataframe["Literature"] == "This work"]
+literature = dataframe[dataframe["Literature"] != "This work"]
+
+fig, ax = plt.subplots()
+
+# This work: viridis colour by redshift bin
+bins = own["z_bin"].dropna().unique()
+bin_colours = dict(zip(bins, plt.cm.viridis(np.linspace(0, 1, len(bins)))))
+
+for z_bin, group in own.groupby("z_bin", sort=False):
+    ax.errorbar(group["z_median"], group["n_e_median"],
+        xerr=[group["z_median"] - group["z_ci16"],
+            group["z_ci84"] - group["z_median"]],
+        yerr=[group["n_e_median"] - group["n_e_ci16"],
+            group["n_e_ci84"] - group["n_e_median"]],
+        fmt="o", color=bin_colours[z_bin], ecolor = "black",
+        markeredgecolor="black", markersize = 10, capsize=3, zorder = 2)
+
+# Literature: distinct colour and marker by source
+sources = literature["Literature"].dropna().unique()
+markers = ["s", "^", "D", "v", "P", "X", "*", "<", ">"]
+
+for source, marker in zip(sources, markers):
+    group = literature[literature["Literature"] == source]
+    ax.errorbar(group["z_median"], group["n_e_median"],
+                
+        xerr=[group["z_median"] - group["z_ci16"], 
+              group["z_ci84"] - group["z_median"]],
+
+        yerr=[group["n_e_median"] - group["n_e_ci16"],
+            group["n_e_ci84"] - group["n_e_median"]],
+
+        fmt=marker, color = "darkorange", ecolor = "black",
+        markeredgecolor="black", markersize = 10, capsize=3, label=source, zorder = 0)
+
+flat_samples = sampler.get_chain(discard=100, thin=15, flat=True)
+a_fit, p_fit = np.median(flat_samples, axis=0)
+
+z_fit = np.linspace(dataframe["z_median"].min(),
+                    dataframe["z_median"].max(), 1000)
+ax.plot(
+    z_fit,
+    model((a_fit, p_fit), z_fit),
+    color="black",
+    linewidth=2, linestyle = "--", zorder = 1)
+
+ax.set_xlabel(r"$z$")
+ax.set_ylabel(r"$n_e$ (cm$^{-3}$)")
+ax.set_yscale("log")
+ax.legend()
+plt.savefig(dir / "Master_density_plot.png")
+plt.show()
