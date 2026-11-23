@@ -1,12 +1,25 @@
-from scipy.optimize import least_squares
 import emcee
 import corner
 import numpy as np
+import matplotlib.pyplot as plt
+from pathlib import Path
+import pandas as pd 
+from IPython.display import display, Math
 
 """For this, I am following the MCMC tutorial written by Imad Pasha at 
 https://prappleizer.github.io/Tutorials/MCMC/MCMC_Tutorial.html"""
 
+#Import data
+plt.rcParams["text.usetex"] = True
 
+dir = Path(__file__).resolve().parent
+dataframe = pd.read_csv(dir / "n_e_vs_z_T_e_15000_binned_data.csv", comment = "#")
+
+lit_source = dataframe["Literature"]
+z = dataframe["z_median"].to_numpy(dtype=float)
+n_e_data = dataframe["n_e_median"].to_numpy(dtype=float)
+n_e_data_err_lower = (dataframe["n_e_median"] - dataframe["n_e_ci16"]).to_numpy(dtype=float)
+n_e_data_err_upper = (dataframe["n_e_ci84"] - dataframe["n_e_median"]).to_numpy(dtype=float)
 
 def model(theta, z):
     """Power law model for the density redshift relation"""
@@ -44,17 +57,58 @@ def log_probability(theta, n_e_data, z, n_e_data_err_upper, n_e_data_err_lower):
 
 def main(data):
 
-    initial_guess = np.array([10, 1.5]) #a, p
-    proposal = initial_guess + 1e-4 * np.random.randn(2)
+    nwalkers = 50
+    ndim = 2
 
-    sampler = emcee.EnsembleSampler(50, 2, log_probability, args = (data))
+    initial_guess = np.array([10, 1.5]) #a, p
+    proposal = initial_guess + 1e-4 * np.random.randn(nwalkers, ndim)
+
+    sampler = emcee.EnsembleSampler(nwalkers, ndim, log_probability, args = (data))
 
     print("Running burn-in...")
     proposal, _, _ = sampler.run_mcmc(proposal, 100)
     sampler.reset()
 
     print("Running production...")
-    pos, prob, state = sampler.run_mcmc(proposal, 5000)
+    pos, prob, state = sampler.run_mcmc(proposal, 5000, progress = True)
+
+    fig, axes = plt.subplots(2, figsize=(8, 6), sharex=True)
+    samples = sampler.get_chain()
+    labels = ["a", "p"]
+    for i in range(ndim):
+        ax = axes[i]
+        ax.plot(samples[:, :, i], "k", alpha=0.3)
+        ax.set_xlim(0, len(samples))
+        ax.set_ylabel(labels[i])
+        ax.yaxis.set_label_coords(-0.1, 0.5)
+    
+    axes[-1].set_xlabel("step number")
+    #plt.savefig(dir / "MCMCwalkers.png")
+    #plt.show()
+
+    tau = sampler.get_autocorr_time()
+    print(tau)
+
+    flat_samples = sampler.get_chain(discard=100, thin=15, flat=True)
+    print(flat_samples.shape)
+
+    fig = corner.corner(flat_samples, labels=labels, 
+                        plot_datapoints=True,quantiles=[0.16, 0.5, 0.84])
+    plt.savefig(dir / "MCMCcornerplot.png")
+    #plt.show()
+
+    for i in range(ndim):
+        mcmc = np.percentile(flat_samples[:, i], [16, 50, 84])
+        q = np.diff(mcmc)
+        txt = r"\mathrm{{{3}}} = {0:.3f}_{{-{1:.3f}}}^{{{2:.3f}}}"
+        txt = txt.format(mcmc[1], q[0], q[1], labels[i])
+        print(f"{labels[i]} = {mcmc[1]:.3f} " 
+              f"-{q[0]:.3f}/+{q[1]:.3f}")
 
     return sampler, pos, prob, state
+
+data = (n_e_data, z, n_e_data_err_upper, n_e_data_err_lower)
+main(data)
+
+#Plot all data
 
