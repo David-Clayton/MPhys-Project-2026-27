@@ -4,7 +4,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
 import pandas as pd 
-from IPython.display import display, Math
 
 """For this, I am following the MCMC tutorial written by Imad Pasha at 
 https://prappleizer.github.io/Tutorials/MCMC/MCMC_Tutorial.html"""
@@ -13,7 +12,7 @@ https://prappleizer.github.io/Tutorials/MCMC/MCMC_Tutorial.html"""
 plt.rcParams["text.usetex"] = True
 
 dir = Path(__file__).resolve().parent
-dataframe = pd.read_csv(dir / "n_e_vs_z_T_e_15000_binned_data.csv", comment = "#")
+dataframe = pd.read_csv(dir / "n_e_vs_z_T_e_15000_binned_data_snr5.csv", comment = "#")
 
 lit_source = dataframe["Literature"]
 z = dataframe["z_median"].to_numpy(dtype=float)
@@ -70,7 +69,7 @@ def main(data):
     sampler.reset()
 
     print("Running production...")
-    pos, prob, state = sampler.run_mcmc(proposal, 5000, progress = True)
+    pos, prob, state = sampler.run_mcmc(proposal, 20000, progress = True)
 
     fig, axes = plt.subplots(2, figsize=(8, 6), sharex=True)
     samples = sampler.get_chain()
@@ -83,7 +82,7 @@ def main(data):
         ax.yaxis.set_label_coords(-0.1, 0.5)
     
     axes[-1].set_xlabel("step number")
-    #plt.savefig(dir / "MCMCwalkers.png")
+    plt.savefig(dir / "MCMCwalkers_nolit.png")
     #plt.show()
 
     tau = sampler.get_autocorr_time()
@@ -94,7 +93,7 @@ def main(data):
 
     fig = corner.corner(flat_samples, labels=labels, 
                         plot_datapoints=True,quantiles=[0.16, 0.5, 0.84])
-    plt.savefig(dir / "MCMCcornerplot.png")
+    plt.savefig(dir / "MCMCcornerplot_nolit.png")
     #plt.show()
 
     for i in range(ndim):
@@ -163,5 +162,5 @@ ax.set_xlabel(r"$z$")
 ax.set_ylabel(r"$n_e$ (cm$^{-3}$)")
 ax.set_yscale("log")
 ax.legend()
-plt.savefig(dir / "Master_density_plot.png")
+plt.savefig(dir / "Master_density_plot_no_lit.png")
 plt.show()

@@ -90,12 +90,16 @@ for z_bin, row in summary.iterrows():
 plt.xlabel(r"$z$")
 plt.ylabel(r"$n_e$ (cm$^{-3}$)")
 plt.yscale("log")
-plt.axhline(10, color = "darkred", label = "")
-plt.title(r"$T_e = 15000 K$ (Topping/PyNeb limits, Topping $SNR>3$)")
+plt.axhline(10, color = "darkred", label = "Lower bound")
+plt.axhspan(plt.ylim()[0], 10, color="darkred", alpha=0.2)
+plt.axhline(2000, color = "darkorange", label = "Upper bound")
+plt.axhspan(2000, plt.ylim()[1], color = "darkorange", alpha = 0.2)
+plt.title(r"$T_e = 15000 K$ (Topping/PyNeb limits, Topping $SNR>5$)")
 plt.savefig(dir / "n_e_vs_z_Te_15000_binned.png", dpi=300)
+plt.legend()
 plt.show()
 
 #Save binned medians to CSV
 summary.insert(0, "Literature", "This work")
-summary.to_csv(dir / "n_e_vs_z_T_e_15000_binned_data.csv")
+summary.to_csv(dir / "n_e_vs_z_T_e_15000_binned_data_snr5.csv")
 
